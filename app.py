@@ -1,0 +1,35 @@
+from flask import Flask, session, g
+from config import Config
+from extensions import db
+from models import User
+from routes.main_routes import bp as main_bp
+from routes.member_routes import bp as member_bp
+from routes.chat_routes import bp as chat_bp
+from routes.decision_routes import bp as decision_bp
+from routes.history_routes import bp as history_bp
+from routes.community_routes import bp as community_bp
+
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    db.init_app(app)
+    for bp in [main_bp, member_bp, chat_bp, decision_bp, history_bp, community_bp]:
+        app.register_blueprint(bp)
+
+    @app.before_request
+    def load_user():
+        g.user = db.session.get(User, session['user_id']) if 'user_id' in session else None
+
+    @app.context_processor
+    def inject_user():
+        return {'current_user': g.get('user')}
+
+    # 이틀짜리 프로토타입용 초기화. 실서비스에서는 마이그레이션으로 교체.
+    with app.app_context():
+        db.create_all()
+    return app
+
+app = create_app()
+
+if __name__ == '__main__':
+    app.run(debug=True)
