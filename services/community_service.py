@@ -23,6 +23,15 @@ def list_posts(category=None, query=None, user_id=None):
     counts = dict(db.session.query(CommunityVote.option_id, func.count(CommunityVote.id)).group_by(CommunityVote.option_id).all())
     return posts, votes, liked, counts
 
+def top_posts_by_engagement(metric, limit=3):
+    """Return global community posts ranked by likes or comments."""
+    posts = Post.query.all()
+    if metric == 'comments':
+        posts.sort(key=lambda post: (len(post.comments), post.created_at, post.id), reverse=True)
+    else:
+        posts.sort(key=lambda post: (len(post.likes), post.created_at, post.id), reverse=True)
+    return posts[:limit]
+
 def create_post(user, title, content, category, option_names):
     post = Post(user_id=user.id, title=title.strip(), content=content.strip(), category=category)
     post.options = [PostOption(name=name.strip()) for name in option_names if name.strip()]
