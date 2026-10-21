@@ -24,9 +24,6 @@ def create_app():
     def inject_user():
         return {'current_user': g.get('user')}
 
-    # 이틀짜리 프로토타입용 초기화. 실서비스에서는 마이그레이션으로 교체.
-    with app.app_context():
-        db.create_all()
     return app
 
 app = create_app()
