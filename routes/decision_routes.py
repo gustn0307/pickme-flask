@@ -26,10 +26,22 @@ def index():
         free_text = request.form.get('conditions_free', '').strip()
         conditions = ", ".join(chips + ([free_text] if free_text else []))
 
+        # 2단계: 비교할 선택지 (같은 페이지에서 함께 제출됨)
+        opt_titles = request.form.getlist('option_title')
+        opt_notes = request.form.getlist('option_note')
+        options = [
+            {"title": t.strip(), "note": n.strip()}
+            for t, n in zip(opt_titles, opt_notes) if t.strip()
+        ]
+
+        # 3단계: 판단 기준
+        criteria = request.form.getlist('criteria')
+
         if not content:
             error = "고민 내용을 입력해 주세요."
         else:
-            prompt = build_prompt(categories, style, title, content, conditions)
+            prompt = build_prompt(categories, style, title, content, conditions,
+                                  options=options, criteria=criteria)
             ai_result = get_ai_consultation(prompt)
 
             # 상담 기록 저장 (로그인한 사용자만)

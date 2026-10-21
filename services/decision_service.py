@@ -61,10 +61,24 @@ def get_ai_consultation(prompt: str) -> str:
     return f"AI 응답 생성 중 오류가 발생했습니다: {str(last_error)}"
 
 
-def build_prompt(categories, style, title, content, conditions) -> str:
+def build_prompt(categories, style, title, content, conditions, options=None, criteria=None) -> str:
     """개선 1~5: 카테고리(복수), 스타일, 자유 제목, 가이드 기반 내용, 추가 조건을 반영한 프롬프트."""
     style_guide = STYLES.get(style, STYLES["objective"])
     cat_text = ", ".join(categories) if categories else "지정 없음"
+
+    # 2단계: 비교할 선택지 목록
+    opt_lines = ""
+    if options:
+        opt_lines += "[비교할 선택지]\n"
+        for i, opt in enumerate(options, 1):
+            line = f"{i}. {opt['title']}"
+            if opt.get("note"):
+                line += f" - {opt['note']}"
+            opt_lines += line + "\n"
+        opt_lines += "\n"
+
+    # 3단계: 판단 기준
+    crit_text = ", ".join(criteria) if criteria else "지정 없음"
 
     lines = [
         "당신은 고민 해결을 돕는 상담 전문가입니다. 아래 상담 요청에 답해주세요.",
@@ -77,13 +91,16 @@ def build_prompt(categories, style, title, content, conditions) -> str:
         "[고민 내용]",
         content,
         "",
+        opt_lines or "[비교할 선택지] 없음\n",
+        f"[판단 기준] {crit_text}",
         f"[추가 조건 및 특별한 상황] {conditions or '없음'}",
         "",
         "요구사항:",
         "1. 고민 내용을 바탕으로 상황을 짧게 정리해주세요.",
         "2. 선택지가 있다면 선택지별 장단점을 현실적으로 비교해주세요.",
-        "3. 지정된 조언 스타일의 말투와 태도를 유지해주세요.",
-        "4. 미래나 관계의 결과를 단정하지 말고, 판단 재료를 제시하는 방식으로 조언해주세요.",
-        "5. 마지막에 한 줄 추천 결론을 정리해주세요.",
+        "3. 판단 기준이 있다면 그 기준 관점에서도 평가해주세요.",
+        "4. 지정된 조언 스타일의 말투와 태도를 유지해주세요.",
+        "5. 미래나 관계의 결과를 단정하지 말고, 판단 재료를 제시하는 방식으로 조언해주세요.",
+        "6. 마지막에 한 줄 추천 결론을 정리해주세요.",
     ]
     return "\n".join(lines)

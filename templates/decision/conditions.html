@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/decision.css') }}">
+
+<div class="container mt-4">
+    <h2>3. 판단 기준 및 중요도 가중치 (3/5)</h2>
+    <p class="text-muted">어떤 요소를 중요하게 생각하는지 최대 5개까지 선택하세요.</p>
+
+    <p><b>선택지 미리보기:</b>
+        {% for opt in options %}<span class="chip">{{ opt.title }}</span> {% endfor %}
+    </p>
+
+    <form method="POST" class="panel">
+        <div class="chip-group">
+            <label class="chip"><input type="checkbox" name="criteria" value="비용 (비판 및 총괄비용)"> 비용 (비판 및 총괄비용)</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="소요 시간 및 편의성"> 소요 시간 및 편의성</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="개인적 만족도 및 행복"> 개인적 만족도 및 행복</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="성장 가능성 및 기회"> 성장 가능성 및 기회</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="안정성 및 리스크 관리"> 안정성 및 리스크 관리</label>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">AI 상담 받으러 가기</button>
+    </form>
+</div>
+{% endblock %}
