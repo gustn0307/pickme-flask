@@ -48,9 +48,24 @@ class HistoryService:
     @staticmethod
     def update_retrospective(decision_id, user_id, actual_choice, satisfaction_score, retrospective_note):
         """회고 내용 업데이트"""
+        
+        if satisfaction_score is not None and satisfaction_score != '':
+            # 1. 먼저 정수 변환이 가능한지 확인
+            try:
+                satisfaction_score = int(satisfaction_score)
+            except (ValueError, TypeError):
+                raise ValueError("잘못된 만족도 점수 형식입니다.")
+            
+            # 2. 변환된 정수가 1~5 사이인지 확인 (try-except 밖으로 빼기)
+            if not (1 <= satisfaction_score <= 5):
+                raise ValueError("만족도 점수는 1점에서 5점 사이여야 합니다.")
+        else:
+            satisfaction_score = None  
+
         decision = Decision.query.filter_by(id=decision_id, user_id=user_id).first()
         if not decision:
             return False
+            
         decision.actual_choice = actual_choice
         decision.satisfaction_score = satisfaction_score
         decision.retrospective_note = retrospective_note
