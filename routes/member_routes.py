@@ -1,53 +1,85 @@
 from functools import wraps
+
 from flask import Blueprint, render_template, request, redirect, url_for, session, g, flash
-from werkzeug.security import generate_password_hash, check_password_hash
-from extensions import db
-from models import User
+
+from services import member_service
 
 bp = Blueprint('member', __name__, url_prefix='/member')
+
 
 def login_required(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
-        if not g.user:
+        if not g.get('user'):
             flash('로그인이 필요합니다.')
             return redirect(url_for('member.login'))
         return fn(*args, **kwargs)
     return decorated
 
-@bp.route('/signup', methods=['GET','POST'])
+
+@bp.route('/signup', methods=['GET', 'POST'])
 def signup():
+    if g.get('user'):
+        return redirect(url_for('member.mypage'))
     if request.method == 'POST':
-        email = request.form.get('email','').strip().lower()
-        password = request.form.get('password','')
-        nickname = request.form.get('nickname','').strip()
-        if not email or '@' not in email or len(password) < 8 or not nickname:
-            flash('이메일, 닉네임, 8자 이상 비밀번호를 확인해주세요.')
-        elif db.session.query(User).filter_by(email=email).first():
-            flash('이미 가입된 이메일입니다.')
+        try:
+            member_service.register_member(
+                request.form.get('email', ''), request.form.get('nickname', ''),
+                request.form.get('password', ''))
+        except member_service.MemberError as error:
+            flash(str(error))
         else:
-            user = User(email=email, nickname=nickname, password_hash=generate_password_hash(password))
-            db.session.add(user); db.session.commit()
             flash('회원가입되었습니다. 로그인해주세요.')
             return redirect(url_for('member.login'))
     return render_template('member/signup.html')
 
-@bp.route('/login', methods=['GET','POST'])
+
+@bp.route('/login', methods=['GET', 'POST'])
 def login():
+    if g.get('user'):
+        return redirect(url_for('member.mypage'))
     if request.method == 'POST':
-        email = request.form.get('email','').strip().lower()
-        user = db.session.query(User).filter_by(email=email).first()
-        if user and check_password_hash(user.password_hash, request.form.get('password','')):
-            session.clear(); session['user_id'] = user.id
+        try:
+            user = member_service.authenticate_member(
+                request.form.get('email', ''), request.form.get('password', ''))
+        except member_service.MemberError as error:
+            flash(str(error))
+        else:
+            session.clear()
+            session['user_id'] = user.id
             return redirect(url_for('main.index'))
-        flash('이메일 또는 비밀번호가 올바르지 않습니다.')
     return render_template('member/login.html')
+
 
 @bp.post('/logout')
 def logout():
-    session.clear(); return redirect(url_for('main.index'))
+    session.clear()
+    flash('로그아웃되었습니다.')
+    return redirect(url_for('main.index'))
 
-@bp.get('/mypage')
+
+@bp.route('/mypage', methods=['GET', 'POST'])
 @login_required
 def mypage():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        try:
+            if action == 'nickname':
+                member_service.change_nickname(g.user, request.form.get('nickname', ''))
+                flash('닉네임을 변경했습니다.')
+            elif action == 'password':
+                member_service.change_password(
+                    g.user, request.form.get('current_password', ''),
+                    request.form.get('new_password', ''),
+                    request.form.get('password_confirmation', ''))
+                user_id = g.user.id
+                session.clear()
+                session['user_id'] = user_id
+                flash('비밀번호를 변경했습니다.')
+            else:
+                raise member_service.MemberError('변경할 회원 정보를 확인해주세요.')
+        except member_service.MemberError as error:
+            flash(str(error))
+        else:
+            return redirect(url_for('member.mypage'))
     return render_template('member/mypage.html')
