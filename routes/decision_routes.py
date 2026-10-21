@@ -54,6 +54,8 @@ def index():
         'decision/index.html',
         result=ai_result, error=error,
         categories=CATEGORIES, styles=STYLES, chips=CONDITION_CHIPS,
+        # ★ 입력 리셋 방지: 제출한 값 그대로 돌려보내 화면에 유지
+        form=request.form,
     )
 
 

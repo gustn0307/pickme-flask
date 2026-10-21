@@ -1,2 +1,31 @@
-{% extends 'base.html' %}
-{% block content %}<section class='panel'><h1>고민 기록</h1><p>담당 팀원이 구현할 화면입니다.</p></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">📋 고민 기록</h2>
+    <p class="text-muted">이전에 요청했던 AI 결정 도우미 상담 내역입니다.</p>
+
+    <div class="row mt-4">
+        {% for item in history_list %}
+        <div class="col-md-12 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between bg-light">
+                    <strong>고민 작성일: {{ item.date }}</strong>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Q. {{ item.question }}</h5>
+                    <hr>
+                    <p class="card-text"><strong>A. AI 답변:</strong><br>{{ item.answer }}</p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                저장된 고민 기록이 없습니다.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

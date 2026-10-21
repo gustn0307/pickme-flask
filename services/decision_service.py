@@ -26,6 +26,14 @@ CONDITION_CHIPS = [
 ]
 
 
+# 응답 속도 개선: 가벼운 모델부터 순서대로 시도 (실패 시 다음 모델로 자동 전환)
+MODELS = [
+    "gemini-flash-lite-latest",
+    "gemini-flash-latest",
+    "gemini-2.0-flash",
+]
+
+
 def get_ai_consultation(prompt: str) -> str:
     """Gemini 모델을 사용하여 AI 상담/결정 도우미 응답을 생성합니다."""
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -34,17 +42,23 @@ def get_ai_consultation(prompt: str) -> str:
 
     client = genai.Client(api_key=api_key)
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-flash-latest",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.7,
+    last_error = None
+    for model in MODELS:
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.7,
+                    max_output_tokens=800,  # 속도 개선: 답변 길이 제한
+                )
             )
-        )
-        return response.text
-    except Exception as e:
-        return f"AI 응답 생성 중 오류가 발생했습니다: {str(e)}"
+            return response.text
+        except Exception as e:
+            last_error = e
+            continue
+
+    return f"AI 응답 생성 중 오류가 발생했습니다: {str(last_error)}"
 
 
 def build_prompt(categories, style, title, content, conditions) -> str:
@@ -54,6 +68,7 @@ def build_prompt(categories, style, title, content, conditions) -> str:
 
     lines = [
         "당신은 고민 해결을 돕는 상담 전문가입니다. 아래 상담 요청에 답해주세요.",
+        "답변은 500자 안내로 간결하게 작성해주세요.",  # 속도 개선
         "",
         f"[고민 카테고리] {cat_text}",
         f"[조언 스타일] {style_guide}",
