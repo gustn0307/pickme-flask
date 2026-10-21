@@ -22,7 +22,7 @@ def create_app():
 
     @app.context_processor
     def inject_user():
-        return {'current_user': g.get('user')}
+        return {'current_user': g.get('user'), 'csrf_token': lambda: session.setdefault('_csrf_token', __import__('secrets').token_urlsafe(32))}
 
     # 이틀짜리 프로토타입용 초기화. 실서비스에서는 마이그레이션으로 교체.
     with app.app_context():
@@ -33,3 +33,4 @@ app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
