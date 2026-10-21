@@ -22,7 +22,7 @@ def create_app():
 
     @app.context_processor
     def inject_user():
-        return {'current_user': g.get('user')}
+        return {'current_user': g.get('user'), 'csrf_token': lambda: session.setdefault('_csrf_token', __import__('secrets').token_urlsafe(32))}
 
     return app
 
@@ -30,3 +30,4 @@ app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
