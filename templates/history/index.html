@@ -2,7 +2,6 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- 아이콘 렌더링을 위한 Lucide 라이브러리 추가 -->
 <script src="https://unpkg.com/lucide@latest"></script>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-6">
@@ -10,8 +9,7 @@
     <!-- 1. 페이지 헤더 타이틀 영역 -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-            <div class="flex items-center gap-2 text-violet-700 text-xs font-semibold mb-1">
-                <!-- React의 <History /> 아이콘과 동일 -->
+            <div class="flex items-center gap-2 text-blue-700 text-xs font-semibold mb-1">
                 <i data-lucide="history" class="w-4 h-4"></i>
                 <span>나의 고민 회고 및 보관함</span>
             </div>
@@ -20,47 +18,40 @@
         </div>
     </div>
 
-    <!-- 2. 보안 안내 배너 -->
+    <!-- 2. 안내 배너 (로컬스토리지 -> 안전한 서버 보관으로 문구 수정) -->
     <div class="rounded-lg bg-slate-50 border border-slate-200 p-3 flex items-start gap-2.5 text-xs text-slate-600">
-        <!-- React의 <Info /> 아이콘과 동일 -->
-        <i data-lucide="info" class="w-4 h-4 text-violet-600 shrink-0 mt-0.5"></i>
+        <i data-lucide="info" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"></i>
         <p class="leading-relaxed">
-            <strong>보안 안내:</strong> 분석 기록은 브라우저 로컬 저장소(LocalStorage)에 안전하게 보관됩니다. 비슷한 유형의 새로운 고민이 생기면 <strong>[이 기록 기반으로 수정]</strong>을 눌러 손쉽게 새 분석을 시작하세요.
+            <strong>보안 안내:</strong> 분석 기록은 안전하게 서버에 보관됩니다. 비슷한 유형의 새로운 고민이 생기면 <strong>[이 기록 기반으로 수정]</strong>을 눌러 손쉽게 새 분석을 시작하세요.
         </p>
     </div>
 
-    <!-- 3. 데이터가 없을 때 (Empty State) 영역 -->
-    <!-- 캡처 이미지와 동일한 점선(dashed) 테두리와 연한 배경색 적용 -->
-    <div class="flex flex-col items-center justify-center p-12 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-        
-        <!-- 보라색 둥근 사각형 안의 저울 아이콘 -->
-        <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4">
-            <!-- React의 <Scale /> 아이콘과 동일 -->
+    <!-- 3. 데이터가 있을 때 보여줄 리스트 영역 (초기엔 숨김) -->
+    <div id="history-list-container" class="hidden space-y-4">
+        <!-- 자바스크립트가 여기에 고민 기록 카드를 그려줍니다 -->
+    </div>
+
+    <!-- 4. 데이터가 없을 때 (Empty State) 영역 -->
+    <div id="empty-state" class="flex flex-col items-center justify-center p-12 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
             <i data-lucide="scale" class="w-6 h-6"></i>
         </div>
-        
         <h3 class="text-base font-semibold text-slate-900 mb-1">아직 작성된 고민 기록이 없습니다</h3>
         <p class="text-sm text-slate-500 max-w-sm mb-6 leading-relaxed">어떤 결정을 내려야 할지 고민되는 순간이 있다면, 선택지 비교를 시작해 보세요!</p>
         
-        <!-- 결정 도우미로 이동-->
-        <a href="{{ url_for('decision.index') }}" class="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 whitespace-nowrap shrink-0 cursor-pointer select-none text-sm px-4 py-2 gap-2 h-10 bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800 focus-visible:ring-violet-500 shadow-sm">
+        <a href="{{ url_for('decision.index') }}" class="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 whitespace-nowrap shrink-0 cursor-pointer select-none text-sm px-4 py-2 gap-2 h-10 bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 focus-visible:ring-blue-500 shadow-sm">
             새로운 고민 시작하기
         </a>
     </div>
 
 </div>
 
-<!-- 스크립트를 실행하여 <i> 태그를 실제 SVG 아이콘으로 변환 -->
-<script>
-    lucide.createIcons();
-</script>
-
-<!-- ▼여기에 푸터 코드를 넣어주세요!▼ -->
+<!-- 공통 하단 푸터 영역 -->
 <footer class="border-t border-slate-200 bg-white mt-auto py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 text-xs text-slate-500">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-2">
-                <span class="text-violet-600 font-bold">🛡️</span>
+                <span class="text-blue-600 font-bold">🛡️</span>
                 <span>안내: PickMe AI의 분석 및 추천은 합리적 판단을 돕기 위한 <strong>참고용</strong>이며, 모든 최종 결정권과 책임은 사용자 본인에게 있습니다.</span>
             </div>
             <div class="shrink-0 text-slate-400">
@@ -68,15 +59,49 @@
             </div>
         </div>
         <div class="pt-4 border-t border-slate-100 text-center text-slate-400 text-[11px]">
-            This app was developed by another user. It may be inaccurate or unsafe. <span class="text-violet-600 cursor-pointer hover:underline">Report legal issue</span>
+            This app was developed by another user. It may be inaccurate or unsafe. <span class="text-blue-600 cursor-pointer hover:underline">Report legal issue</span>
         </div>
     </div>
 </footer>
-<!-- ▲여기까지 푸터 추가▲ -->
 
-<!-- 스크립트를 실행하여 <i> 태그를 실제 SVG 아이콘으로 변환 -->
 <script>
     lucide.createIcons();
-</script>
 
+    // 페이지가 열리면 파이썬 API(/history/api/list)로 데이터를 요청합니다.
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/history/api/list')
+            .then(response => response.json())
+            .then(data => {
+                const emptyState = document.getElementById('empty-state');
+                const listContainer = document.getElementById('history-list-container');
+
+                if (data && data.length > 0) {
+                    // 1. DB에 데이터가 있으면: 텅 빈 화면을 숨기고 리스트 영역을 엽니다.
+                    emptyState.classList.add('hidden');
+                    emptyState.classList.remove('flex');
+                    listContainer.classList.remove('hidden');
+
+                    // 2. 데이터를 순회하며 HTML 카드를 만들어 리스트에 차곡차곡 붙입니다.
+                    data.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = "p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer relative";
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-[11px] font-bold rounded-md">${item.category || '일반'}</span>
+                                <span class="text-xs text-slate-400">${item.created_at}</span>
+                            </div>
+                            <h2 class="text-lg font-bold text-slate-900 mb-1 line-clamp-1">${item.title}</h2>
+                            <p class="text-sm text-slate-500 line-clamp-2">${item.dilemma}</p>
+                        `;
+                        listContainer.appendChild(card);
+                    });
+                } else {
+                    // DB에 데이터가 없으면: 기존 텅 빈 화면(Empty State)을 그대로 둡니다.
+                    emptyState.classList.remove('hidden');
+                    emptyState.classList.add('flex');
+                }
+            })
+            .catch(error => console.error('기록을 불러오는 중 오류 발생:', error));
+    });
+</script>
 {% endblock %}
