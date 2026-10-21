@@ -18,7 +18,7 @@
         </div>
     </div>
 
-    <!-- 2. 안내 배너 (로컬스토리지 -> 안전한 서버 보관으로 문구 수정) -->
+    <!-- 2. 안내 배너 -->
     <div class="rounded-lg bg-slate-50 border border-slate-200 p-3 flex items-start gap-2.5 text-xs text-slate-600">
         <i data-lucide="info" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"></i>
         <p class="leading-relaxed">
@@ -26,9 +26,37 @@
         </p>
     </div>
 
+    <!-- ★ [신규 추가] 2.5 검색 및 필터 컨트롤 영역 ★ -->
+    <div class="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <!-- 검색창 -->
+        <div class="flex-1 relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="searchInput" placeholder="고민 제목이나 내용 검색..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
+        </div>
+        <!-- 필터 옵션 -->
+        <div class="flex gap-2">
+            <select id="categoryFilter" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                <option value="전체">전체 카테고리</option>
+                <option value="커리어">커리어</option>
+                <option value="연애">연애</option>
+                <option value="쇼핑">쇼핑</option>
+                <option value="일상">일상</option>
+            </select>
+            <select id="sortFilter" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                <option value="latest">최신순</option>
+                <option value="oldest">오래된순</option>
+            </select>
+            <!-- 즐겨찾기 모아보기 토글 버튼 -->
+            <button id="bookmarkFilterBtn" class="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none">
+                <i data-lucide="star" class="w-4 h-4"></i>
+                <span class="whitespace-nowrap">즐겨찾기</span>
+            </button>
+        </div>
+    </div>
+
     <!-- 3. 데이터가 있을 때 보여줄 리스트 영역 (초기엔 숨김) -->
     <div id="history-list-container" class="hidden space-y-4">
-        <!-- 자바스크립트가 여기에 고민 기록 카드를 그려줍니다 -->
+        <!-- 자바스크립트가 고민 기록 카드 생성 -->
     </div>
 
     <!-- 4. 데이터가 없을 때 (Empty State) 영역 -->
@@ -67,41 +95,143 @@
 <script>
     lucide.createIcons();
 
-    // 페이지가 열리면 파이썬 API(/history/api/list)로 데이터를 요청합니다.
-    document.addEventListener('DOMContentLoaded', function() {
-        fetch('/history/api/list')
+    // ★ [신규] 필터 상태를 저장하는 객체
+    const currentFilters = {
+        q: '',
+        category: '전체',
+        sort: 'latest',
+        bookmarked: false
+    };
+
+    // ★ [수정] 데이터를 불러오는 부분을 함수로 분리 (필터 변경 시 재사용하기 위함)
+    function loadHistories() {
+        // 필터 상태를 URL 파라미터로 변환 (?q=검색어&category=전체...)
+        const params = new URLSearchParams({
+            q: currentFilters.q,
+            category: currentFilters.category,
+            sort: currentFilters.sort,
+            bookmarked: currentFilters.bookmarked
+        });
+
+        fetch(`/history/api/list?${params.toString()}`)
             .then(response => response.json())
             .then(data => {
                 const emptyState = document.getElementById('empty-state');
                 const listContainer = document.getElementById('history-list-container');
+                
+                // 기존 리스트 초기화 (새로 검색할 때마다 비워줌)
+                listContainer.innerHTML = '';
 
                 if (data && data.length > 0) {
-                    // 1. DB에 데이터가 있으면: 텅 빈 화면을 숨기고 리스트 영역을 엽니다.
                     emptyState.classList.add('hidden');
                     emptyState.classList.remove('flex');
                     listContainer.classList.remove('hidden');
 
-                    // 2. 데이터를 순회하며 HTML 카드를 만들어 리스트에 차곡차곡 붙입니다.
                     data.forEach(item => {
                         const card = document.createElement('div');
                         card.className = "p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer relative";
+                        
+                        // 즐겨찾기 여부에 따라 별 아이콘 색상 결정
+                        const starClass = item.is_bookmarked ? 'text-yellow-400 fill-yellow-400' : 'text-slate-300 hover:text-yellow-400';
+
                         card.innerHTML = `
                             <div class="flex justify-between items-start mb-2">
                                 <span class="px-2 py-1 bg-blue-100 text-blue-700 text-[11px] font-bold rounded-md">${item.category || '일반'}</span>
-                                <span class="text-xs text-slate-400">${item.created_at}</span>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-slate-400">${item.created_at}</span>
+                                    <!-- ★ [신규] 즐겨찾기 버튼 -->
+                                    <button onclick="toggleBookmark('${item.id}', event, this)" class="focus:outline-none transition-colors" title="즐겨찾기">
+                                        <i data-lucide="star" class="w-5 h-5 ${starClass}"></i>
+                                    </button>
+                                </div>
                             </div>
                             <h2 class="text-lg font-bold text-slate-900 mb-1 line-clamp-1">${item.title}</h2>
                             <p class="text-sm text-slate-500 line-clamp-2">${item.dilemma}</p>
                         `;
                         listContainer.appendChild(card);
                     });
+                    // 새로 생성된 카드 안의 아이콘(별)들을 다시 렌더링
+                    lucide.createIcons();
                 } else {
-                    // DB에 데이터가 없으면: 기존 텅 빈 화면(Empty State)을 그대로 둡니다.
                     emptyState.classList.remove('hidden');
                     emptyState.classList.add('flex');
+                    listContainer.classList.add('hidden');
                 }
             })
             .catch(error => console.error('기록을 불러오는 중 오류 발생:', error));
+    }
+
+    // ★ [신규] 개별 즐겨찾기 토글 함수
+    function toggleBookmark(decisionId, event, btnElement) {
+        event.stopPropagation(); // 카드 클릭 이벤트와 겹치지 않게 방지
+
+        fetch(`/history/api/${decisionId}/bookmark`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    // API 응답에 맞춰 별 아이콘 색상 변경
+                    const svg = btnElement.querySelector('svg');
+                    if(data.is_bookmarked) {
+                        svg.classList.add('text-yellow-400', 'fill-yellow-400');
+                        svg.classList.remove('text-slate-300');
+                    } else {
+                        svg.classList.remove('text-yellow-400', 'fill-yellow-400');
+                        svg.classList.add('text-slate-300');
+                    }
+                    
+                    // 만약 '즐겨찾기 모아보기' 필터가 켜진 상태에서 즐겨찾기를 해제했다면 리스트 새로고침
+                    if (currentFilters.bookmarked && !data.is_bookmarked) {
+                        loadHistories();
+                    }
+                }
+            })
+            .catch(error => console.error('즐겨찾기 변경 오류:', error));
+    }
+
+    // --- 이벤트 리스너 등록 ---
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. 초기 데이터 로드
+        loadHistories();
+
+        // 2. 검색어 입력 이벤트
+        const searchInput = document.getElementById('searchInput');
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            currentFilters.q = e.target.value;
+            // 타자 칠 때마다 API를 너무 많이 호출하지 않도록 0.3초 대기 후 검색
+            searchTimeout = setTimeout(loadHistories, 300);
+        });
+
+        // 3. 카테고리 변경 이벤트
+        document.getElementById('categoryFilter').addEventListener('change', (e) => {
+            currentFilters.category = e.target.value;
+            loadHistories();
+        });
+
+        // 4. 정렬 변경 이벤트
+        document.getElementById('sortFilter').addEventListener('change', (e) => {
+            currentFilters.sort = e.target.value;
+            loadHistories();
+        });
+
+        // 5. 즐겨찾기 모아보기 토글 버튼 이벤트
+        const bookmarkBtn = document.getElementById('bookmarkFilterBtn');
+        bookmarkBtn.addEventListener('click', () => {
+            currentFilters.bookmarked = !currentFilters.bookmarked;
+            
+            // 버튼 디자인(활성화/비활성화) 변경
+            if(currentFilters.bookmarked) {
+                bookmarkBtn.classList.add('bg-blue-50', 'text-blue-600', 'border-blue-200');
+                bookmarkBtn.classList.remove('bg-slate-50', 'text-slate-600');
+                bookmarkBtn.querySelector('svg').classList.add('fill-blue-600');
+            } else {
+                bookmarkBtn.classList.remove('bg-blue-50', 'text-blue-600', 'border-blue-200');
+                bookmarkBtn.classList.add('bg-slate-50', 'text-slate-600');
+                bookmarkBtn.querySelector('svg').classList.remove('fill-blue-600');
+            }
+            loadHistories();
+        });
     });
 </script>
 {% endblock %}
