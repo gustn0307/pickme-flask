@@ -1,1 +1,2 @@
-from .entities import User, Decision, Post, PostOption, CommunityVote, CommunityLike, Comment
+from .entities import User, Decision, Post, Comment, PostOption, CommunityVote, CommunityLike
+
