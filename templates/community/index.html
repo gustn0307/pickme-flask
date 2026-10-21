@@ -7,11 +7,14 @@
     <select name="category"><option value="전체">전체 카테고리</option>{% for category in categories %}<option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select>
     <button type="submit">검색</button>
   </form>
+  <div class="community-layout">
+  <div class="community-feed-column">
   {% if not posts %}<div class="community-empty">조건에 맞는 고민이 없습니다. 첫 번째 투표를 올려보세요!</div>{% endif %}
+  {% if featured_post_id %}<p class="featured-note">{{ selected_category }} 인기 고민을 먼저 보여드리고, 나머지는 최신순으로 정렬했습니다.</p>{% endif %}
   <div class="community-feed">
   {% for post in posts %}{% set total = post.votes|length %}
     <article class="community-card" id="post-{{ post.id }}">
-      <div class="post-meta"><span class="category-pill">{{ post.category }}</span><span>작성자 {{ post.author.nickname }}</span><time>{{ post.created_at.strftime('%Y-%m-%d') }}</time>{% if post.ai_recommendation %}<span class="ai-pill">AI 추천: {{ post.ai_recommendation }}</span>{% endif %}</div>
+      <div class="post-meta">{% if post.id == featured_post_id %}<span class="featured-pill">인기 글</span>{% endif %}<span class="category-pill">{{ post.category }}</span><span>작성자 {{ post.author.nickname }}</span><time>{{ post.created_at.strftime('%Y-%m-%d') }}</time>{% if post.ai_recommendation %}<span class="ai-pill">AI 추천: {{ post.ai_recommendation }}</span>{% endif %}</div>
       <h2>{{ post.title }}</h2><p class="post-content">{{ post.content }}</p>
       <div class="vote-heading"><strong>선택지를 클릭해 투표하세요</strong><span>총 {{ total }}명 참여</span></div>
       <div class="option-list">{% for option in post.options %}{% set count = vote_counts.get(option.id, 0) %}{% set percent = ((count * 100 / total)|round|int) if total else 0 %}
@@ -23,6 +26,12 @@
       </section>
     </article>
   {% endfor %}</div>
+  </div>
+  <aside class="community-sidebar" aria-label="인기 게시물">
+    <section class="popular-panel"><h2>공감 많은 고민</h2><ol>{% for post in top_liked_posts %}<li><a href="{{ url_for('community.index', _anchor='post-' ~ post.id) }}">{{ post.title }}</a><span>{{ post.likes|length }} 공감</span></li>{% else %}<li class="popular-empty">아직 게시물이 없습니다.</li>{% endfor %}</ol></section>
+    <section class="popular-panel"><h2>댓글 많은 고민</h2><ol>{% for post in top_commented_posts %}<li><a href="{{ url_for('community.index', _anchor='post-' ~ post.id) }}">{{ post.title }}</a><span>{{ post.comments|length }} 댓글</span></li>{% else %}<li class="popular-empty">아직 게시물이 없습니다.</li>{% endfor %}</ol></section>
+  </aside>
+  </div>
 </section>
 <dialog id="new-post" class="post-dialog"><form method="post" action="{{ url_for('community.create') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><h2>새로운 고민 투표 등록</h2><label>카테고리<select name="category" required>{% for category in categories %}<option value="{{ category }}">{{ category }}</option>{% endfor %}</select></label><label>제목<input name="title" maxlength="200" required placeholder="고민을 한 줄로 표현해보세요"></label><label>고민 내용<textarea name="content" maxlength="5000" rows="4" required placeholder="상황과 배경을 적어주세요"></textarea></label><label>선택지 (최소 2개, 최대 5개)<input name="options" maxlength="120" required placeholder="선택지 1"></label><input name="options" maxlength="120" required placeholder="선택지 2"><input name="options" maxlength="120" placeholder="선택지 3 (선택)"><input name="options" maxlength="120" placeholder="선택지 4 (선택)"><input name="options" maxlength="120" placeholder="선택지 5 (선택)"><div class="dialog-actions"><button type="button" class="secondary" onclick="document.getElementById('new-post').close()">취소</button><button type="submit">투표 올리기</button></div></form></dialog>
 <script src="{{ url_for('static', filename='js/community.js') }}" defer></script>
