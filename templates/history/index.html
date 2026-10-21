@@ -42,8 +42,8 @@
         <h3 class="text-base font-semibold text-slate-900 mb-1">아직 작성된 고민 기록이 없습니다</h3>
         <p class="text-sm text-slate-500 max-w-sm mb-6 leading-relaxed">어떤 결정을 내려야 할지 고민되는 순간이 있다면, 선택지 비교를 시작해 보세요!</p>
         
-        <!-- 새로운 고민 시작하기 버튼 -->
-        <a href="/decision/new" class="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 whitespace-nowrap shrink-0 cursor-pointer select-none text-sm px-4 py-2 gap-2 h-10 bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800 focus-visible:ring-violet-500 shadow-sm">
+        <!-- 결정 도우미로 이동-->
+        <a href="{{ url_for('decision.index') }}" class="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 whitespace-nowrap shrink-0 cursor-pointer select-none text-sm px-4 py-2 gap-2 h-10 bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800 focus-visible:ring-violet-500 shadow-sm">
             새로운 고민 시작하기
         </a>
     </div>
