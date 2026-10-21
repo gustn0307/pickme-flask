@@ -1,2 +1,132 @@
 {% extends 'base.html' %}
-{% block content %}<section class='panel'><h1>결정 도우미</h1><p>담당 팀원이 구현할 화면입니다.</p></section>{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/decision.css') }}">
+
+<div class="container mt-4">
+    <h2>결정 도우미 (AI 상담)</h2>
+    <p class="text-muted">지금 어떤 고민이 있으신가요? AI가 현명한 결정을 도와드립니다.</p>
+
+    {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+
+    <!-- 고민 입력 폼 -->
+    <form method="POST" class="panel">
+        <!-- 개선 1: 고민 카테고리 복수 선택 -->
+        <fieldset class="mb-3">
+            <legend>🏷️ 고민 카테고리 <small>(여러 개 선택 가능)</small></legend>
+            <div class="chip-group">
+                {% for cat in categories %}
+                <label class="chip"><input type="checkbox" name="categories" value="{{ cat }}">{{ cat }}</label>
+                {% endfor %}
+            </div>
+        </fieldset>
+
+        <!-- 개선 2: AI 조언 스타일 (상담 중 변경 가능) -->
+        <fieldset class="mb-3">
+            <legend>✨ AI 조언 스타일</legend>
+            <div class="chip-group">
+                <label class="chip"><input type="radio" name="style" value="soft"> 부드러운 공감형</label>
+                <label class="chip"><input type="radio" name="style" value="objective" checked> 객관적인 분석형</label>
+                <label class="chip"><input type="radio" name="style" value="fact"> 냉정한 팩트형</label>
+            </div>
+            <p class="hint">예: 상담 후 "공감은 됐고, 이제 팩트로 말해줘" 처럼 스타일을 바꿔 다시 물어볼 수 있어요.</p>
+        </fieldset>
+
+        <!-- 개선 3: 자유로운 고민 제목 -->
+        <div class="mb-3">
+            <label for="title">고민 제목 (자유롭게 적어주세요)</label>
+            <input type="text" id="title" name="title" placeholder="예: 지금 이직을 준비해야 할까요?">
+        </div>
+
+        <!-- 개선 4: 고민 작성 가이드 (육하원칙 대신 핵심 4개) -->
+        <div class="mb-3">
+            <label for="content">고민 내용 <b class="req">*</b></label>
+            <div class="guide-box">
+                <b>이렇게 적어주면 더 정확한 상담이 가능해요</b>
+                <ul>
+                    <li>누구와 어떤 일이 있었는지 (상황 · 관련 인물)</li>
+                    <li>지금 무엇을 고민하고 있는지 (선택지)</li>
+                    <li>왜 고민되는지 (이유)</li>
+                </ul>
+            </div>
+            <textarea id="content" name="content" rows="6" required
+                placeholder="예: 현재 직장에서 상사와 갈등이 있어요. 이직을 준비할까 말까 고민인데, 떠나기엔 연봉이 괜찮고 남기엔 스트레스가 커요."></textarea>
+        </div>
+
+        <!-- 개선 5: 추가 조건 칩 UI + 자유 입력 -->
+        <fieldset class="mb-3">
+            <legend>➕ 추가 조건 및 특별한 상황 <small>(선택)</small></legend>
+            <div class="chip-group">
+                {% for chip in chips %}
+                <label class="chip"><input type="checkbox" name="conditions" value="{{ chip }}">{{ chip }}</label>
+                {% endfor %}
+            </div>
+            <input type="text" name="conditions_free" placeholder="직접 입력: 예산은 15,000원 이내 등" class="mt-2">
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary">AI 상담 요청하기</button>
+    </form>
+
+    <!-- 개선 1: 카테고리별 인기 고민 Top 5 -->
+    <div class="panel mt-3">
+        <h3>🔥 인기 고민 Top 5</h3>
+        <ol id="popular-list" class="popular-list"><li>불러오는 중...</li></ol>
+    </div>
+
+    <!-- AI 답변 출력 영역 -->
+    {% if result %}
+    <div class="card mt-4">
+        <div class="card-header bg-success text-white"><strong>🤖 AI 상담 결과</strong></div>
+        <div class="card-body">
+            <p style="white-space: pre-line;">{{ result }}</p>
+            <!-- 개선 2: 결과에서 스타일만 바꿔 다시 상담 -->
+            <div class="restyle-box">
+                <b>다른 스타일로 다시 듣기:</b>
+                <button type="button" class="btn-restyle" data-style="soft">부드럽게 공감받기</button>
+                <button type="button" class="btn-restyle" data-style="objective">객관적으로 분석받기</button>
+                <button type="button" class="btn-restyle" data-style="fact">팩트로 말하기</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// 인기 고민 Top 5 불러오기
+fetch('{{ url_for("decision.api_popular") }}')
+    .then(r => r.json())
+    .then(list => {
+        const el = document.getElementById('popular-list');
+        el.innerHTML = list.length
+            ? list.map(x => `<li>${x.title} <small>(${x.count}회)</small></li>`).join('')
+            : '<li>아직 인기 고민이 없어요. 첫 상담을 시작해보세요!</li>';
+    })
+    .catch(() => { document.getElementById('popular-list').innerHTML = '<li>인기 고민을 불러올 수 없습니다.</li>'; });
+
+// 스타일 변경 재상담
+document.querySelectorAll('.btn-restyle').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const form = document.querySelector('form.panel');
+        const body = {
+            style: btn.dataset.style,
+            categories: [...form.querySelectorAll('input[name="categories"]:checked')].map(i => i.value),
+            title: form.title.value,
+            content: form.content.value,
+            conditions: [...form.querySelectorAll('input[name="conditions"]:checked')].map(i => i.value)
+                .concat(form.conditions_free.value.trim() ? [form.conditions_free.value.trim()] : []).join(', ')
+        };
+        btn.disabled = true;
+        fetch('{{ url_for("decision.api_restyle") }}', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+        })
+        .then(r => r.json())
+        .then(d => {
+            const p = document.querySelector('.card-body p');
+            if (p) p.textContent = d.result || d.error;
+            btn.disabled = false;
+        })
+        .catch(() => { btn.disabled = false; });
+    });
+});
+</script>
+{% endblock %}
