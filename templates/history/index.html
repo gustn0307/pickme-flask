@@ -1,2 +1,57 @@
-{% extends 'base.html' %}
-{% block content %}<section class='panel'><h1>고민 기록</h1><p>담당 팀원이 구현할 화면입니다.</p></section>{% endblock %}
+<!-- pickme-flask-main/templates/history/index.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<!-- 아이콘 렌더링을 위한 Lucide 라이브러리 추가 -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+    
+    <!-- 1. 페이지 헤더 타이틀 영역 -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+        <div>
+            <div class="flex items-center gap-2 text-violet-700 text-xs font-semibold mb-1">
+                <!-- React의 <History /> 아이콘과 동일 -->
+                <i data-lucide="history" class="w-4 h-4"></i>
+                <span>나의 고민 회고 및 보관함</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">고민 분석 기록</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">이전 고민과 선택지 비교 결과를 검색하고, 비슷한 고민을 불러와 손쉽게 수정해 보세요.</p>
+        </div>
+    </div>
+
+    <!-- 2. 보안 안내 배너 -->
+    <div class="rounded-lg bg-slate-50 border border-slate-200 p-3 flex items-start gap-2.5 text-xs text-slate-600">
+        <!-- React의 <Info /> 아이콘과 동일 -->
+        <i data-lucide="info" class="w-4 h-4 text-violet-600 shrink-0 mt-0.5"></i>
+        <p class="leading-relaxed">
+            <strong>보안 안내:</strong> 분석 기록은 브라우저 로컬 저장소(LocalStorage)에 안전하게 보관됩니다. 비슷한 유형의 새로운 고민이 생기면 <strong>[이 기록 기반으로 수정]</strong>을 눌러 손쉽게 새 분석을 시작하세요.
+        </p>
+    </div>
+
+    <!-- 3. 데이터가 없을 때 (Empty State) 영역 -->
+    <!-- 캡처 이미지와 동일한 점선(dashed) 테두리와 연한 배경색 적용 -->
+    <div class="flex flex-col items-center justify-center p-12 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+        
+        <!-- 보라색 둥근 사각형 안의 저울 아이콘 -->
+        <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4">
+            <!-- React의 <Scale /> 아이콘과 동일 -->
+            <i data-lucide="scale" class="w-6 h-6"></i>
+        </div>
+        
+        <h3 class="text-base font-semibold text-slate-900 mb-1">아직 작성된 고민 기록이 없습니다</h3>
+        <p class="text-sm text-slate-500 max-w-sm mb-6 leading-relaxed">어떤 결정을 내려야 할지 고민되는 순간이 있다면, 선택지 비교를 시작해 보세요!</p>
+        
+        <!-- 새로운 고민 시작하기 버튼 -->
+        <a href="/decision/new" class="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 whitespace-nowrap shrink-0 cursor-pointer select-none text-sm px-4 py-2 gap-2 h-10 bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800 focus-visible:ring-violet-500 shadow-sm">
+            새로운 고민 시작하기
+        </a>
+    </div>
+
+</div>
+
+<!-- 스크립트를 실행하여 <i> 태그를 실제 SVG 아이콘으로 변환 -->
+<script>
+    lucide.createIcons();
+</script>
+{% endblock %}
