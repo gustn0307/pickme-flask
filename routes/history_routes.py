@@ -38,7 +38,7 @@ def api_get_history_list():
             "category": h.category,
             "created_at": h.created_at.strftime('%Y-%m-%d %H:%M') if h.created_at else "",
             "options_data": result_data.get("options", []),           # 필요시 사용
-            "recommendation_data": result_data.get("recommendation"), # 필요시 사용
+            "recommendation_data": result_data.get("result"),   # ← recommendation → result 로 변경
             "is_bookmarked": h.is_bookmarked,
             "actual_choice": h.actual_choice,
             "satisfaction_score": h.satisfaction_score,
