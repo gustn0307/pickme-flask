@@ -1,6 +1,6 @@
 from flask import Flask, session, g
 from config import Config
-from extensions import db
+from extensions import db, migrate
 from models import User
 from routes.main_routes import bp as main_bp
 from routes.member_routes import bp as member_bp
@@ -13,6 +13,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     db.init_app(app)
+    migrate.init_app(app, db)
     for bp in [main_bp, member_bp, chat_bp, decision_bp, history_bp, community_bp]:
         app.register_blueprint(bp)
 
@@ -30,4 +31,3 @@ app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True)
-
