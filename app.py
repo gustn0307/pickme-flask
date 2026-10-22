@@ -25,10 +25,6 @@ def create_app():
     def inject_user():
         return {'current_user': g.get('user'), 'csrf_token': lambda: session.setdefault('_csrf_token', __import__('secrets').token_urlsafe(32))}
 
-    # Create tables automatically only for local SQLite development. PostgreSQL schema changes use migrations.
-    if app.config.get('AUTO_CREATE_DB'):
-        with app.app_context():
-            db.create_all()
     return app
 
 app = create_app()
