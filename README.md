@@ -1,52 +1,54 @@
 # PickMe Flask community implementation
 
-기존 Flask 스타터를 바탕으로 Remix `CommunityPage`의 기능을 Flask/Jinja2로 옮긴 MVP입니다. `/community/` 게시판은 모든 방문자가 같은 DB 게시물·투표 결과·공감·댓글을 읽습니다. 게시글 작성, 투표, 재투표, 공감, 댓글은 로그인 사용자만 가능합니다. 회원별 투표는 게시물당 1개이며 재투표하면 기존 선택이 바뀝니다.
+기존 Flask 스타터에 커뮤니티 기능을 포함한 프로젝트입니다. 기본 모델은 PostgreSQL과 SQLAlchemy를 사용하며, 실제 DB 접속 주소는 `.env`의 `DATABASE_URL`에 설정합니다. `.env.example`을 `.env`로 복사한 뒤 DB 제공자가 준 값으로 바꾸세요. `.env`에는 비밀번호가 들어갈 수 있으므로 GitHub에 올리지 마세요.
 
-전체 게시물 기준으로 공감 상위 3개와 댓글 상위 3개를 오른쪽 인기 목록에 표시합니다. 목록 제목을 누르면 해당 게시글로 이동합니다. 특정 카테고리를 고르면 현재 검색 결과 안에서 공감 수와 댓글 수를 합친 점수가 가장 높은 게시물이 먼저 나오고, 나머지는 최신순으로 표시됩니다.
+## PostgreSQL 연결 준비
 
-## 실행
+1. PostgreSQL에서 DB와 앱 전용 사용자를 준비하고, 해당 사용자에게 DB 접속 및 스키마 생성 권한을 부여합니다.
+2. `.env.example`을 `.env`로 복사합니다.
+3. `DATABASE_URL`을 `postgresql+psycopg://사용자:비밀번호@호스트:5432/DB이름` 형식으로 입력합니다. 비밀번호에 `@`, `/`, `#`, `:` 등이 포함되면 URL 인코딩이 필요할 수 있습니다.
+4. `SECRET_KEY`도 충분히 긴 임의 문자열로 바꿉니다.
+5. 의존성을 설치합니다: `pip install -r requirements.txt`
 
-1. Python 3.12 환경에서 `pip install -r requirements.txt`
-2. `.env.example`을 `.env`로 복사하고 `SECRET_KEY`, `DATABASE_URL` 설정
-3. `python app.py`
-4. `/member/signup`에서 계정을 만든 뒤 `/community/` 사용
+`config.py`는 PostgreSQL URL에 psycopg 3 드라이버를 사용하고 DB 연결이 끊겼다가 복구된 경우를 감지하도록 설정합니다. `postgres://` 또는 `postgresql://` 형식도 psycopg 3 URL로 보정합니다. 개발용 기본값은 `sqlite:///pickme.db`입니다.
 
-SQLite 기본값으로 로컬 실행할 수 있으며 PostgreSQL 설정 예시는 `postgresql+psycopg://USER:PASSWORD@HOST:5432/DBNAME`입니다. 스타터는 `db.create_all()`을 사용하므로 운영 및 기존 DB에는 Flask-Migrate/Alembic 마이그레이션이 필요합니다. 기존 SQLite의 `user`/`post` 구조와 호환되는 자동 변경은 하지 않습니다.
+## 스키마 생성 및 변경
 
-## 구조
+기본 SQLite 개발 모드에서는 앱 시작 시 `db.create_all()`이 빠진 테이블을 생성합니다. PostgreSQL에서는 `AUTO_CREATE_DB=false`로 두고, `app.py`가 SQLAlchemy와 Flask-Migrate를 초기화하며 DB 스키마를 마이그레이션으로 관리합니다. `db.create_all()`은 기존 테이블의 컬럼을 변경하지 않습니다. PostgreSQL DB에 접속할 수 있고 모델 정의가 확정된 뒤, 프로젝트 루트에서 최초 한 번 실행합니다.
 
-- `routes/community_routes.py`: HTTP 요청, 검증, 로그인/CSRF 검사
-- `services/community_service.py`: 게시글 조회·생성, 투표·공감·댓글 처리
-- `models/entities.py`: 사용자 및 커뮤니티 테이블/관계
-- `templates/community/index.html`: 검색/카테고리/피드/게시글 모달
-- `static/css/style.css`: 커뮤니티 반응형 스타일
+```powershell
+flask --app app db init
+flask --app app db migrate -m "initial schema"
+flask --app app db upgrade
+```
 
-## DB 스키마 제안
+생성된 `migrations/` 폴더와 파일은 Git에 커밋해야 합니다. 이후 `models/entities.py`에서 테이블이나 컬럼을 바꿀 때마다 새 마이그레이션을 만들고 적용합니다.
 
-스타터의 회원 테이블은 `users` (복수형)로 정규화했고 기존 `Decision.user_id` FK도 `users.id`로 맞췄습니다. 테이블 이름이나 공통 엔티티를 팀 합의 없이 통합 DB에 적용하지 마세요. 투표 수는 별도 카운터 컬럼 대신 `community_votes` 행을 집계해 일관성을 유지합니다.
+```powershell
+flask --app app db migrate -m "describe schema change"
+flask --app app db upgrade
+```
 
-| 테이블 | 주요 컬럼 | 용도 |
-|---|---|---|
-| `users` | `id` PK, `email` UNIQUE, `password_hash`, `nickname`, `created_at` | 공통 회원 |
-| `posts` | `id` PK, `user_id` FK, `title`, `content`, `category`, `ai_recommendation` nullable, `created_at` | 커뮤니티 고민 글 |
-| `post_options` | `id` PK, `post_id` FK, `name` | 글마다 2~5개 선택지 |
-| `community_votes` | `id` PK, `post_id` FK, `option_id` FK, `user_id` FK, `created_at`; UNIQUE(`post_id`,`user_id`) | 회원당 게시물 투표 1개 |
-| `community_likes` | `id` PK, `post_id` FK, `user_id` FK, `created_at`; UNIQUE(`post_id`,`user_id`) | 회원당 게시물 공감 1개 |
-| `comments` | `id` PK, `post_id` FK, `user_id` FK, `content`, `created_at` | 댓글과 작성자 |
-| `decisions` | `id` PK, `user_id` FK, `title`, `question`, `result_json`, `created_at` | 개인 결정 기록, 커뮤니티 글과 별도 |
+`migrate`가 생성한 파일은 적용 전에 꼭 검토하세요. 테이블·컬럼 이름이나 DB 설계가 팀이 정한 스키마와 다르면 마이그레이션을 적용하기 전에 `models/entities.py`를 먼저 맞춰야 합니다. PostgreSQL에서는 `AUTO_CREATE_DB=false`를 유지하고, `db.create_all()` 대신 마이그레이션으로 스키마를 관리합니다. 로컬 SQLite에서만 자동 테이블 생성을 사용합니다.
 
-모든 FK는 `users.id`를 가리키며 삭제 시 하위 데이터도 삭제되도록 설정했습니다. 실제 통합 전에는 담당자와 테이블 명세를 합의하고 마이그레이션으로 반영하세요.
+## 앱 실행
 
-## 엔드포인트
+```powershell
+python app.py
+```
 
-- `GET /community/?q=검색어&category=음식/식사`
-- `GET /community/updates` (변경 감지 JSON)
-- `POST /community/create`
-- `POST /community/<post_id>/vote/<option_id>`
-- `POST /community/<post_id>/like`
-- `POST /community/<post_id>/comments`
+또는 배포 시 `gunicorn 'app:app'`을 사용합니다. PostgreSQL 서버·DB·사용자·권한은 앱과 별도로 준비되어 있어야 합니다.
 
-## 제한 및 후속 작업
+## 모델 구조
 
-공유 상태는 공용 DB에 저장되고, 5초 간격 변경 감지로 다른 사용자의 게시글·투표·공감·댓글 변경 시 피드를 갱신합니다. WebSocket/SSE 푸시보다 단순한 폴링 기반으로 갱신에 최대 약 5초 지연이 있습니다. 코드에는 세션 CSRF 토큰과 로그인 검사를 넣었지만 배포 전 Flask-WTF 등 정식 CSRF 보호, rate limit, 마이그레이션 및 HTTPS 설정을 적용하세요. `ai_recommendation`은 데이터 필드만 마련되어 있으며 AI 호출은 커뮤니티 MVP 범위에서 수행하지 않습니다.
+테이블과 컬럼 정의는 `models/entities.py`에 있습니다. 현재 모델은 `users`, `decisions`, `posts`, `post_options`, `community_votes`, `community_likes`, `comments` 테이블을 정의합니다. 외부에서 별도 스키마를 이미 만들 예정이면 이 파일의 테이블명, 컬럼명, 자료형, 제약조건과 일치하는지 확인하고 마이그레이션을 적용하세요.
+
+커뮤니티 요청은 `routes/community_routes.py`, DB 읽기/쓰기는 `services/community_service.py`에 있습니다. DB 주소만 바꾸는 경우 이 두 파일은 보통 수정하지 않습니다. DB 스키마를 다르게 정했다면 모델과 쿼리가 그 스키마에 맞는지 확인해야 합니다.
+
+## 주의
+
+- `.env`와 실제 DB 비밀번호를 Git에 커밋하지 마세요.
+- 운영 DB에서 마이그레이션을 적용하기 전에 백업하고, 생성된 마이그레이션 내용을 확인하세요.
+- `requirements.txt`에는 PostgreSQL 드라이버 `psycopg[binary]`와 스키마 변경 도구 `Flask-Migrate`가 포함되어 있습니다.
+- 로컬 기본 SQLite는 `users` 등 필요한 테이블을 자동 생성하므로 `python app.py`로 시작할 수 있습니다. PostgreSQL에서는 접속 정보와 모델 정의가 확정된 뒤 마이그레이션을 적용해야 합니다.
 
