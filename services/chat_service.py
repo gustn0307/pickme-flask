@@ -113,7 +113,9 @@ HARMFUL_RE = re.compile(
 )
 
 DECISION_HINT_RE = re.compile(
-    r"할지|갈지|먹을지|살지|볼지|고민|선택|비교|아니면|아님"
+    r"할지|갈지|먹을지|살지|볼지|잘지|쉴지|입을지|탈지|둘지|만날지|말할지"
+    r"|할까|갈까|먹을까|살까|볼까|잘까|쉴까|입을까|탈까|둘까|만날까|말할까"
+    r"|말까|고민|선택|비교|아니면|아님"
     r"|\bvs\b|\bor\b|[?？]|\bshould\b|\bwhich\b|\bwhether\b",
     re.IGNORECASE,
 )
@@ -129,18 +131,21 @@ CHAT_RE = re.compile(
 # 명확한 의사결정(선택지 비교) 힌트
 DECISION_STRONG_RE = re.compile(
     r"(?:\bvs\b|\bor\b|아니면|아님"
-    r"|할까\s*말까|살까\s*말까|갈까\s*말까|먹을까\s*말까|볼까\s*말까"
-    r"|(?:할지|갈지|먹을지|살지|볼지)\s*.{0,20}(?:지|까)"
+    r"|[가-힣]{1,6}까\s*말까"  # 잘까 말까, 살까 말까 등
+    r"|(?:할지|갈지|먹을지|살지|볼지|잘지|쉴지)\s*.{0,20}(?:지|까)"
     r"|(?:와|과)\s*.{1,20}\s*중"
     r"|중에\s*(?:무엇|뭘|뭐)"
     r"|둘\s*중|어느\s*(?:쪽|것|걸)"
     r"|무엇\s*을?\s*(?:고를|선택|먹을|할지)"
     r"|선택지|비교해|장단점"
-    r"|(?:먹을까|할까|갈까|살까|볼까)\s+.+(?:먹을까|할까|갈까|살까|볼까)"
+    r"|(?:먹을까|할까|갈까|살까|볼까|잘까|쉴까)\s+.+(?:먹을까|할까|갈까|살까|볼까|잘까|쉴까)"
     r"|(?:이직|퇴사|그만둘)(?:할까|할지)"
-    r"|그만둘까)",
+    r"|그만둘까"
+    # 마트 갈까 / 영화 볼까 / 운동 할까 / 잘까 등 (목적어+~까 또는 단독 ~까)
+    r"|(?:[가-힣0-9A-Za-z]{1,20}\s+)?(?:갈까|할까|먹을까|살까|볼까|잘까|쉴까|입을까|탈까|둘까|만날까|말할까)\b)",
     re.IGNORECASE,
 )
+
 
 JAMO_ONLY_RE = re.compile(r"^[ㄱ-ㅎㅏ-ㅣ\s]+$")
 JAMO_CHAR_RE = re.compile(r"[ㄱ-ㅎㅏ-ㅣ]")
@@ -156,6 +161,20 @@ VERB_MAP = {
     "볼지": ("보기", "보지 않기"),
     "할까": ("하기", "하지 않기"),
     "할지": ("하기", "하지 않기"),
+    "잘까": ("자기", "자지 않기"),
+    "잘지": ("자기", "자지 않기"),
+    "쉴까": ("쉬기", "쉬지 않기"),
+    "쉴지": ("쉬기", "쉬지 않기"),
+    "입을까": ("입기", "입지 않기"),
+    "입을지": ("입기", "입지 않기"),
+    "탈까": ("타기", "타지 않기"),
+    "탈지": ("타기", "타지 않기"),
+    "둘까": ("두기", "두지 않기"),
+    "둘지": ("두기", "두지 않기"),
+    "만날까": ("만나기", "만나지 않기"),
+    "만날지": ("만나기", "만나지 않기"),
+    "말할까": ("말하기", "말하지 않기"),
+    "말할지": ("말하기", "말하지 않기"),
 }
 
 VERB_PATTERN = re.compile(
@@ -165,8 +184,8 @@ VERB_PATTERN = re.compile(
 )
 
 TWO_VERB_RE = re.compile(
-    r"^(.+?)\s*(할까|갈까|먹을까|살까|볼까)\s+"
-    r"(.+?)\s*(할까|갈까|먹을까|살까|볼까)$"
+    r"^(.+?)\s*(할까|갈까|먹을까|살까|볼까|잘까|쉴까)\s+"
+    r"(.+?)\s*(할까|갈까|먹을까|살까|볼까|잘까|쉴까)$"
 )
 
 SPLIT_RE = re.compile(
@@ -311,6 +330,20 @@ class ChatService:
 
         return False
 
+    @classmethod
+    def _is_decision_question(cls, message):
+        """잡담이 아니고, 선택지를 뽑을 수 있는 의사결정 질문인지."""
+        if cls._is_crisis(message) or cls._is_harmful(message):
+            return False
+        if cls._has_decision_intent(message):
+            return True
+        # 힌트는 약하지만 옵션 추출이 되면 의사결정으로 본다
+        if DECISION_HINT_RE.search(message):
+            opts = cls._extract_options(message)
+            if opts and len(opts) >= 2:
+                return True
+        return False
+
     @staticmethod
     def _short(text, limit):
         text = " ".join(str(text).split())
@@ -435,12 +468,29 @@ class ChatService:
             if a and b and a != b:
                 return [a, b]
 
-        # 5) ~할까 말까 (목적어 있거나 단독)
-        m = re.search(r"^(?:(.+?)\s+)?(할까|갈까|먹을까|살까|볼까)\s*말까$", cleaned_core)
+        # 5) ~까 말까 (잘까 말까, 살까 말까, 낮잠 잘까 말까 등)
+        m = re.search(
+            r"^(?:(.+?)\s+)?("
+            + "|".join(map(re.escape, sorted(VERB_MAP, key=len, reverse=True)))
+            + r")\s*말까$",
+            cleaned_core,
+        )
         if m:
             base = (m.group(1) or "").strip()
             verb = m.group(2)
             do, dont = VERB_MAP[verb]
+            if base:
+                base = re.sub(r"[을를이가은는]$", "", base).strip()
+                return [f"{base} {do}", f"{base} {dont}"]
+            return [do, dont]
+
+        # 5-b) 사전에 없는 ~까 말까 일반형 (예: 달릴까 말까)
+        m = re.search(r"^(?:(.+?)\s+)?([가-힣]{1,6}까)\s*말까$", cleaned_core)
+        if m:
+            base = (m.group(1) or "").strip()
+            stem = m.group(2)[:-1]  # 까 제거
+            do = stem + "기"
+            dont = stem + "지 않기"
             if base:
                 base = re.sub(r"[을를이가은는]$", "", base).strip()
                 return [f"{base} {do}", f"{base} {dont}"]
@@ -465,15 +515,17 @@ class ChatService:
                 return [f"{prefix} {do}", f"{prefix} {dont}"]
             return [do, dont]
 
-        # 7) 단일 ~할까 (이진 선택)
-        m = re.search(r"(.+?)\s*(할까|갈까|먹을까|살까|볼까)$", cleaned_core)
+        # 7) 단일 ~까 (이진 선택: 잘까, 살까, 낮잠 잘까 등)
+        verb_alt = "|".join(map(re.escape, sorted(VERB_MAP, key=len, reverse=True)))
+        m = re.search(rf"^(?:(.+?)\s+)?({verb_alt})$", cleaned_core)
         if m:
-            base = m.group(1).strip()
+            base = (m.group(1) or "").strip()
             verb = m.group(2)
             do, dont = VERB_MAP[verb]
             base = re.sub(r"[을를이가은는]$", "", base).strip()
-            if base and len(base) >= 1:
+            if base:
                 return [f"{base} {do}", f"{base} {dont}"]
+            return [do, dont]
 
         # 선택지를 안정적으로 뽑지 못하면 None (강제 가짜 옵션 생성 안 함)
         return None
