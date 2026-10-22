@@ -1,0 +1,360 @@
+
+{% extends 'base.html' %}
+{# base.html의 공통 레이아웃을 상속한다. #}
+
+{% block content %}
+{# 부모 템플릿의 content 영역에 아래 화면을 표시한다. #}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/decision.css') }}">
+{# 결정 도우미 화면에 적용할 CSS 파일을 연결한다. #}
+{# url_for()는 Flask에서 해당 정적 파일의 URL을 만들어 준다. #}
+
+<div class="container mt-4">
+    {# 화면 전체의 바깥 영역을 만들고 위쪽 여백을 준다. #}
+
+    <h2>결정 도우미 (AI 상담)</h2>
+    {# 화면의 제목을 표시한다. #}
+
+    <p class="text-muted">지금 어떤 고민이 있으신가요? AI가 현명한 결정을 도와드립니다.</p>
+    {# 사용자에게 서비스의 목적을 안내한다. #}
+
+    {% if error %}
+    <div class="alert">{{ error }}</div>
+    {% endif %}
+    {# Flask에서 오류 메시지를 전달했다면 화면에 표시한다. #}
+
+    <!-- 고민 입력 폼 -->
+    <form method="POST" class="panel" id="decision-form">
+        {# 사용자가 작성한 고민을 POST 방식으로 서버에 전송한다. #}
+        {# id는 JavaScript에서 이 폼을 찾을 때 사용한다. #}
+
+        <!-- 개선 1: 고민 카테고리 복수 선택 -->
+        <fieldset class="mb-3">
+            {# 관련 입력 항목들을 하나의 그룹으로 묶는다. #}
+
+            <legend>🏷️ 고민 카테고리 <small>(여러 개 선택 가능)</small></legend>
+            {# 카테고리 선택 영역의 제목이다. #}
+
+            <div class="chip-group">
+                {# 카테고리 버튼들을 모아 보여주는 영역이다. #}
+
+                {% for cat in categories %}
+                {# Python에서 전달한 categories 목록을 하나씩 반복한다. #}
+
+                <label class="chip">
+                    <input type="checkbox" name="categories" value="{{ cat }}"
+                        {% if cat in form.getlist('categories') %}checked{% endif %}>
+                    {{ cat }}
+                </label>
+                {# 체크박스를 선택하면 해당 카테고리가 서버로 전달된다. #}
+                {# name이 같아 여러 카테고리를 함께 전송할 수 있다. #}
+                {# 이전에 선택했던 카테고리는 checked로 선택 상태를 유지한다. #}
+                {% endfor %}
+            </div>
+        </fieldset>
+
+        <!-- 개선 2: AI 조언 스타일 (상담 중 변경 가능) -->
+        <fieldset class="mb-3">
+            <legend>✨ AI 조언 스타일</legend>
+            {# AI가 어떤 말투와 방식으로 상담할지 선택하는 영역이다. #}
+
+            <div class="chip-group">
+                {# 상담 스타일 선택 항목들을 묶는다. #}
+
+                {% set sel_style = form.get('style', 'objective') %}
+                {# 이전에 선택한 스타일을 가져온다. #}
+                {# 선택한 값이 없으면 objective를 기본값으로 사용한다. #}
+
+                <label class="chip">
+                    <input type="radio" name="style" value="soft"
+                        {% if sel_style == 'soft' %}checked{% endif %}>
+                    부드러운 공감형
+                </label>
+                {# 공감 중심의 상담 스타일이다. #}
+
+                <label class="chip">
+                    <input type="radio" name="style" value="objective"
+                        {% if sel_style == 'objective' %}checked{% endif %}>
+                    객관적인 분석형
+                </label>
+                {# 논리와 균형을 중심으로 상담하는 스타일이다. #}
+
+                <label class="chip">
+                    <input type="radio" name="style" value="fact"
+                        {% if sel_style == 'fact' %}checked{% endif %}>
+                    냉정한 팩트형
+                </label>
+                {# 현실적인 관점에서 핵심을 짚는 스타일이다. #}
+            </div>
+
+            <p class="hint">예: 상담 후 "공감은 됐고, 이제 팩트로 말해줘" 처럼 스타일을 바꿔 다시 물어볼 수 있어요.</p>
+            {# 상담 결과를 받은 뒤 스타일을 바꿀 수 있다는 안내 문구다. #}
+        </fieldset>
+
+        <!-- 개선 3: 자유로운 고민 제목 -->
+        <div class="mb-3">
+            <label for="title">고민 제목 (자유롭게 적어주세요)</label>
+            {# for="title"은 id="title"인 입력창과 연결된다. #}
+
+            <input type="text" id="title" name="title"
+                value="{{ form.get('title', '') }}"
+                placeholder="예: 지금 이직을 준비해야 할까요?">
+            {# 고민 제목을 입력받는다. #}
+            {# name은 서버에서 값을 구분하는 이름이다. #}
+            {# value는 이전에 입력한 제목을 다시 보여준다. #}
+            {# placeholder는 입력 전 예시 문구다. #}
+        </div>
+
+        <!-- ★ 수정된 비교할 선택지 설정 폼 -->
+        <div class="mb-3">
+            <label class="form-label"><b>비교할 선택지 설정</b></label>
+            {# 사용자가 비교하고 싶은 대안을 입력하는 영역이다. #}
+
+            <p class="text-muted small">비교할 대안을 최소 2개 이상 입력하세요</p>
+            {# 최소 두 가지 대안을 입력하도록 안내한다. #}
+
+            <div class="mb-2">
+                <input type="text" name="option_names" class="form-control"
+                    placeholder="예: 짬뽕"
+                    value="{{ form.getlist('option_names')[0] if form.getlist('option_names') else '' }}"
+                    required>
+                {# 첫 번째 선택지 이름을 입력받는다. #}
+                {# option_names라는 이름으로 서버에 전송된다. #}
+                {# 이전 입력값이 있다면 첫 번째 값을 다시 표시한다. #}
+                {# required는 입력하지 않으면 폼 제출을 막는다. #}
+            </div>
+
+            <div class="mb-2">
+                <input type="text" name="option_names" class="form-control"
+                    placeholder="예: 짜장면"
+                    value="{{ form.getlist('option_names')[1] if form.getlist('option_names')|length > 1 else '' }}"
+                    required>
+                {# 두 번째 선택지 이름을 입력받는다. #}
+                {# 첫 번째 입력창과 name이 같으므로 서버에서는 getlist()로 여러 값을 받는다. #}
+                {# 두 번째 값이 존재할 때만 이전 입력값을 표시한다. #}
+            </div>
+        </div>
+
+        <!-- 개선 4: 고민 작성 가이드 -->
+        <div class="mb-3">
+            <label for="content">고민 내용 <b class="req">*</b></label>
+            {# 실제 고민 내용을 작성하는 영역이다. 별표는 필수 항목임을 나타낸다. #}
+
+            <div class="guide-box">
+                <b>이렇게 적어주면 더 정확한 상담이 가능해요 (핵심 4가지)</b>
+                {# 사용자가 고민을 구체적으로 작성하도록 안내한다. #}
+
+                <ul>
+                    <li>어떤 상황인지 <small>(예: 직장에서 상사와 갈등이 있음)</small></li>
+                    <li>누구와 관련된 일인지 <small>(예: 상사, 친구, 가족 등)</small></li>
+                    <li>무엇을 고민하고 있는지 <small>(예: 이직 vs 버티기)</small></li>
+                    <li>왜 고민되는지 <small>(예: 연봉은 괜찮은데 스트레스가 커서)</small></li>
+                </ul>
+                {# 상황, 관계자, 선택 사항, 고민하는 이유를 작성하도록 돕는다. #}
+            </div>
+
+            <textarea id="content" name="content" rows="6" required
+                placeholder="예: 현재 직장에서 상사와 갈등이 있어요. 이직을 준비할까 말까 고민인데, 떠나기엔 연봉이 괜찮고 남기엔 스트레스가 커요.">{{ form.get('content', '') }}</textarea>
+            {# 여러 줄의 고민 내용을 입력받는다. #}
+            {# rows="6"은 기본 표시 높이를 지정한다. #}
+            {# required는 고민 내용을 필수로 입력하게 한다. #}
+            {# 이전에 작성한 내용은 textarea 안에 다시 표시한다. #}
+        </div>
+
+        <!-- 개선 5: 추가 조건 칩 UI + 자유 입력 -->
+        <fieldset class="mb-3">
+            <legend>➕ 추가 조건 및 특별한 상황 <small>(선택)</small></legend>
+            {# 상담에 참고할 추가 조건을 선택하거나 직접 입력한다. #}
+
+            <div class="chip-group">
+                {% for chip in chips %}
+                {# Python에서 전달한 추가 조건 목록을 반복한다. #}
+
+                <label class="chip">
+                    <input type="checkbox" name="conditions" value="{{ chip }}"
+                        {% if chip in form.getlist('conditions') %}checked{% endif %}>
+                    {{ chip }}
+                </label>
+                {# 선택한 조건은 conditions라는 이름으로 서버에 전달된다. #}
+                {# 이전에 선택했던 조건은 체크 상태를 유지한다. #}
+                {% endfor %}
+            </div>
+
+            <input type="text" name="conditions_free"
+                value="{{ form.get('conditions_free', '') }}"
+                placeholder="직접 입력: 예산은 15,000원 이내 등" class="mt-2">
+            {# 미리 준비된 조건 외에 사용자가 원하는 조건을 직접 작성한다. #}
+            {# 입력한 값은 conditions_free라는 이름으로 서버에 전달된다. #}
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary" id="submit-btn">AI 상담 요청하기</button>
+        {# 버튼을 누르면 폼에 입력한 정보가 서버로 전송된다. #}
+
+        <!-- ★ 응답 대기 중 로딩 표시 -->
+        <span id="loading" style="display:none;" class="loading-text">
+            ⏳ AI가 고민을 분석하고 있어요... (10~20초 정도 걸려요)
+        </span>
+        {# 기본 상태에서는 숨겨져 있다. #}
+        {# JavaScript가 폼 제출을 감지하면 표시한다. #}
+    </form>
+
+    <!-- 개선 1: 카테고리별 인기 고민 Top 5 -->
+    <div class="panel mt-3">
+        <h3>🔥 인기 고민 Top 5</h3>
+        {# 인기 고민 제목을 보여주는 영역이다. #}
+
+        <ol id="popular-list" class="popular-list">
+            <li>불러오는 중...</li>
+        </ol>
+        {# JavaScript가 서버의 인기 고민 API에서 받은 결과로 목록을 채운다. #}
+    </div>
+
+    <!-- AI 답변 출력 영역 -->
+    {% if result %}
+    {# 서버에서 AI 상담 결과가 전달된 경우에만 결과 화면을 표시한다. #}
+
+    <div class="card mt-4">
+        <div class="card-header bg-success text-white">
+            <strong>🤖 AI 상담 결과</strong>
+        </div>
+        {# 상담 결과 카드의 제목 영역이다. #}
+
+        <div class="card-body">
+            <p style="white-space: pre-line;">{{ result }}</p>
+            {# 서버에서 받은 AI 응답을 화면에 출력한다. #}
+            {# pre-line은 줄바꿈을 화면에 반영한다. #}
+
+            <!-- 개선 2: 결과에서 스타일만 바꿔 다시 상담 -->
+            <div class="restyle-box">
+                <b>다른 스타일로 다시 듣기:</b>
+                {# 기존 고민을 유지한 채 상담 스타일을 바꾸는 버튼들이다. #}
+
+                <button type="button" class="btn-restyle" data-style="soft">부드럽게 공감받기</button>
+                {# 클릭하면 soft 스타일로 재상담한다. #}
+
+                <button type="button" class="btn-restyle" data-style="objective">객관적으로 분석받기</button>
+                {# 클릭하면 objective 스타일로 재상담한다. #}
+
+                <button type="button" class="btn-restyle" data-style="fact">팩트로 말하기</button>
+                {# 클릭하면 fact 스타일로 재상담한다. #}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// 인기 고민 Top 5 불러오기
+// 브라우저에서 서버의 인기 고민 API에 요청을 보낸다.
+fetch('{{ url_for("decision.api_popular") }}')
+    // 서버 응답을 JSON 데이터로 변환한다.
+    .then(r => r.json())
+
+    // 변환한 인기 고민 목록을 화면에 표시한다.
+    .then(list => {
+        // 인기 고민 목록을 표시할 HTML 요소를 찾는다.
+        const el = document.getElementById('popular-list');
+
+        // 결과가 있다면 각 항목을 목록으로 만들고,
+        // 결과가 없으면 첫 상담을 안내하는 문구를 표시한다.
+        el.innerHTML = list.length
+            ? list.map(x => `<li>${x.title} <small>(${x.count}회)</small></li>`).join('')
+            : '<li>아직 인기 고민이 없어요. 첫 상담을 시작해보세요!</li>';
+    })
+
+    // 요청에 실패하면 오류 안내 문구를 표시한다.
+    .catch(() => { document.getElementById('popular-list').innerHTML = '<li>인기 고민을 불러올 수 없습니다.</li>'; });
+
+
+// 스타일 변경 재상담
+// 화면에 있는 모든 재상담 버튼을 찾아 각각 클릭 이벤트를 등록한다.
+document.querySelectorAll('.btn-restyle').forEach(btn => {
+
+    // 사용자가 특정 스타일 버튼을 클릭했을 때 실행한다.
+    btn.addEventListener('click', () => {
+
+        // 고민 입력 폼을 가져온다.
+        const form = document.querySelector('form.panel');
+
+        // 서버에 전달할 JSON 데이터를 만든다.
+        const body = {
+            // 클릭한 버튼에 지정된 상담 스타일
+            style: btn.dataset.style,
+
+            // 현재 체크되어 있는 카테고리만 배열로 수집한다.
+            categories: [...form.querySelectorAll('input[name="categories"]:checked')].map(i => i.value),
+
+            // 현재 입력된 고민 제목
+            title: form.title.value,
+
+            // 현재 입력된 고민 내용
+            content: form.content.value,
+
+            // 체크한 추가 조건과 직접 입력한 조건을 합친다.
+            conditions: [...form.querySelectorAll('input[name="conditions"]:checked')].map(i => i.value)
+                .concat(form.conditions_free.value.trim() ? [form.conditions_free.value.trim()] : []).join(', ')
+        };
+
+        // 중복 클릭을 방지하기 위해 현재 버튼을 비활성화한다.
+        btn.disabled = true;
+
+        // Flask의 재상담 API에 POST 요청을 보낸다.
+        fetch('{{ url_for("decision.api_restyle") }}', {
+            method: 'POST', // 요청 방식
+            headers: {'Content-Type': 'application/json'}, // JSON 데이터임을 알린다.
+            body: JSON.stringify(body) // JavaScript 객체를 JSON 문자열로 변환한다.
+        })
+
+        // 서버 응답을 JSON으로 변환한다.
+        .then(r => r.json())
+
+        // 새로운 상담 결과를 화면에 반영한다.
+        .then(d => {
+            // 기존 상담 결과를 표시하는 p 요소를 찾는다.
+            const p = document.querySelector('.card-body p');
+
+            // 결과가 있으면 결과를, 없으면 오류 메시지를 표시한다.
+            if (p) { p.textContent = d.result || d.error; }
+
+            // 상담 결과 카드의 제목 요소를 찾는다.
+            const header = document.querySelector('.card-header');
+
+            // 스타일 식별값을 화면에 표시할 한글 이름으로 변환한다.
+            const styleNames = { soft: '💕 부드러운 공감형', objective: '📊 객관적인 분석형', fact: '🧊 냉정한 팩트형' };
+
+            // 새로운 상담 결과가 있을 때 카드 제목에 현재 스타일을 표시한다.
+            if (header && d.result) header.textContent = '🤖 AI 상담 결과 — ' + (styleNames[btn.dataset.style] || '');
+
+            // 요청 처리가 끝났으므로 버튼을 다시 활성화한다.
+            btn.disabled = false;
+        })
+
+        // 요청 중 오류가 발생해도 버튼을 다시 활성화한다.
+        .catch(() => { btn.disabled = false; });
+    });
+});
+
+
+// ★ 상담 요청 대기 중 로딩 표시 + 버튼 중복 클릭 방지
+// 고민 입력 폼의 제출 이벤트를 감지한다.
+document.getElementById('decision-form').addEventListener('submit', () => {
+
+    // 상담 요청 버튼을 비활성화해 중복 제출을 방지한다.
+    document.getElementById('submit-btn').disabled = true;
+
+    // 숨겨져 있던 로딩 안내 문구를 화면에 표시한다.
+    document.getElementById('loading').style.display = 'inline';
+});
+document.querySelectorAll('input[name="criteria"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+        const row = document.createElement('div');
+        row.innerHTML = '<b>' + cb.value + '</b> 중요도: <input type="radio" name="w_' + cb.value + '" value="3" checked> 3점';
+        document.getElementById('weight-box').appendChild(row);
+    });
+});
+
+</script>
+{# JavaScript 코드를 실행하는 script 영역의 끝이다. #}
+
+{% endblock %}
+{# 부모 템플릿의 content 영역이 여기서 끝난다. #}

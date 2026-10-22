@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/decision.css') }}">
+
+<div class="container mt-4">
+    <h4>3. 판단 기준 및 중요도 가중치 (3/5)</h4>
+    <p class="text-muted">어떤 요소를 중요하게 생각하는지 최대 5개까지 선택하세요.</p>
+
+    <p><b>선택지 미리보기:</b>
+        {% for opt in options %}<span class="chip">{{ opt.title }}</span> {% endfor %}
+    </p>
+
+    <form method="POST" class="panel">
+        <div class="chip-group">
+            <label class="chip"><input type="checkbox" name="criteria" value="비용 (비판 및 총괄비용)"> 비용 (비판 및 총괄비용)</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="소요 시간 및 편의성"> 소요 시간 및 편의성</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="개인적 만족도 및 행복"> 개인적 만족도 및 행복</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="성장 가능성 및 기회"> 성장 가능성 및 기회</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="안정성 및 리스크 관리"> 안정성 및 리스크 관리</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="안정성 및 리스크 관리"> 일상 편의성 및 용이성</label>
+        </div>
+
+        <div class="criteria-row">
+            <span> 비용 (예상)</span>
+            <input type="radio" name="weight_비용" value="1" id="cost1"><label for="cost1">1</label>
+            <input type="radio" name="weight_비용" value="2" id="cost2"><label for="cost2">2</label>
+            <input type="radio" name="weight_비용" value="3" id="cost3"><label for="cost3">3</label>
+            <input type="radio" name="weight_비용" value="4" id="cost4"><label for="cost4">4</label>
+            <input type="radio" name="weight_비용" value="5" id="cost5" checked><label for = "cost5">5</label>
+        </div>
+
+       <!-- 기준 2: 소요 시간 -->
+<div class="criteria-row">
+    <span> 소요 시간</span>
+    <input type="radio" name="weight_시간" value="1" id="time1"><label for="time1">1</label>
+    <input type="radio" name="weight_시간" value="2" id="time2"><label for="time2">2</label>
+    <input type="radio" name="weight_시간" value="3" id="time3"><label for="time3">3</label>
+    <input type="radio" name="weight_시간" value="4" id="time4"><label for="time4">4</label>
+    <input type="radio" name="weight_시간" value="5" id="time5" checked><label for="time5">5</label>
+</div>
+
+<!-- 기준 3: 개인 만족도 -->
+<div class="criteria-row">
+    <span> 개인 만족도</span>
+    <input type="radio" name="weight_만족도" value="1" id="satis1"><label for="satis1">1</label>
+    <input type="radio" name="weight_만족도" value="2" id="satis2"><label for="satis2">2</label>
+    <input type="radio" name="weight_만족도" value="3" id="satis3"><label for="satis3">3</label>
+    <input type="radio" name="weight_만족도" value="4" id="satis4"><label for="satis4">4</label>
+    <input type="radio" name="weight_만족도" value="5" id="satis5" checked><label for="satis5">5</label>
+</div>
+
+<!-- 기준 4: 성장 가능성 -->
+<div class="criteria-row">
+    <span> 성장 가능성</span>
+    <input type="radio" name="weight_성장" value="1" id="grow1"><label for="grow1">1</label>
+    <input type="radio" name="weight_성장" value="2" id="grow2"><label for="grow2">2</label>
+    <input type="radio" name="weight_성장" value="3" id="grow3"><label for="grow3">3</label>
+    <input type="radio" name="weight_성장" value="4" id="grow4"><label for="grow4">4</label>
+    <input type="radio" name="weight_성장" value="5" id="grow5" checked><label for="grow5">5</label>
+</div>
+
+<!-- 기준 5: 안정성 -->
+<div class="criteria-row">
+    <span> 안정성</span>
+    <input type="radio" name="weight_안정성" value="1" id="safe1"><label for="safe1">1</label>
+    <input type="radio" name="weight_안정성" value="2" id="safe2"><label for="safe2">2</label>
+    <input type="radio" name="weight_안정성" value="3" id="safe3"><label for="safe3">3</label>
+    <input type="radio" name="weight_안정성" value="4" id="safe4"><label for="safe4">4</label>
+    <input type="radio" name="weight_안정성" value="5" id="safe5" checked><label for="safe5">5</label>
+</div>
+        <button type="submit" class="btn btn-primary mt-3">AI 상담 받으러 가기</button>
+    </form>
+</div>
+{% endblock %}
