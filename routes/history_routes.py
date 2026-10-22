@@ -1,7 +1,4 @@
-# pickme-flask-main/routes/history_routes.py
-from flask import Blueprint, render_template, request, jsonify, session
-from services.history_service import HistoryService
-
+from flask import Blueprint, render_template
 bp = Blueprint('history', __name__, url_prefix='/history')
 
 @bp.get('/')
@@ -9,72 +6,26 @@ def index():
     return render_template('history/index.html')
 
 # 담당 팀원이 이 파일의 엔드포인트를 구현합니다.
+from flask import Blueprint, render_template, jsonify, request
 
-def get_current_user_id():
-    """로그인 유저 ID 임시 처리 (회원가입/로그인 파트 연동 전)"""
-    return session.get('user_id', 1)
+history_bp = Blueprint('history', __name__)
 
-@bp.get('/api/list')
-def api_get_history_list():
-    """[AJAX] 화면이 열린 후 자바스크립트가 데이터를 요청할 때 응답하는 API"""
-    search_query = request.args.get('q', '').strip()
-    category = request.args.get('category', '전체')
-    bookmarked_only = request.args.get('bookmarked', 'false').lower() == 'true'
-    sort_by = request.args.get('sort', 'latest')
+# 임시 고민 기록 데이터 (DB 연결 전 바로 화면 확인 가능)
+MOCK_HISTORY = [
+    {
+        "id": 1,
+        "date": "2026-10-21",
+        "question": "오늘 점심 메뉴 삼겹살 vs 회 추천해줘",
+        "answer": "팀 회식이나 여러 사람과 함께하는 자리라면 호불호가 적고 단합에 좋은 삼겹살을 추천합니다!"
+    },
+    {
+        "id": 2,
+        "date": "2026-10-20",
+        "question": "발표 자료 오늘 밤 완성할까, 내일 아침에 검토할까?",
+        "answer": "오늘 밤 핵심 내용을 마무리하고, 내일 아침 개운한 상태에서 최종 검토하는 것이 오류를 줄이는 데 가장 좋습니다."
+    }
+]
 
-    histories = HistoryService.get_user_histories(
-        get_current_user_id(), search_query, category, bookmarked_only, sort_by
-    )
-
-    # 객체를 JSON으로 변환 (models.py의 Entity에 to_dict()가 구현되어 있다고 가정)
-    # 만약 to_dict()가 없다면 여기서 딕셔너리로 매핑해주면 됩니다.
-    result = []
-    for h in histories:
-        result.append({
-            "id": h.id,
-            "title": h.title,
-            "dilemma": h.dilemma,
-            "category": h.category,
-            "created_at": h.created_at.strftime('%Y-%m-%d %H:%M') if h.created_at else "",
-            "options_data": h.options_data,
-            "recommendation_data": h.recommendation_data,
-            "is_bookmarked": h.is_bookmarked,
-            "actual_choice": h.actual_choice,
-            "satisfaction_score": h.satisfaction_score,
-            "retrospective_note": h.retrospective_note
-        })
-    return jsonify(result)
-
-@bp.post('/api/<decision_id>/bookmark')
-def api_toggle_bookmark(decision_id):
-    """[AJAX] 북마크 토글"""
-    new_status = HistoryService.toggle_bookmark(decision_id, get_current_user_id())
-    if new_status is not None:
-        return jsonify({"success": True, "is_bookmarked": new_status})
-    return jsonify({"success": False, "error": "찾을 수 없습니다."}), 404
-
-@bp.post('/api/<decision_id>/retrospective')
-def api_update_retrospective(decision_id):
-    """[AJAX] 회고 내용 업데이트"""
-    data = request.get_json()
-    success = HistoryService.update_retrospective(
-        decision_id,
-        get_current_user_id(),
-        data.get('actualChoice'),
-        data.get('satisfactionScore'),
-        data.get('retrospectiveNote')
-    )
-    return jsonify({"success": success})
-
-@bp.delete('/api/<decision_id>')
-def api_delete_history(decision_id):
-    """[AJAX] 단건 삭제"""
-    if HistoryService.delete_history(decision_id, get_current_user_id()):
-        return jsonify({"success": True})
-    return jsonify({"success": False}), 404
-
-@bp.delete('/api/clear')
-def api_clear_history():
-    """[AJAX] 전체 기록 삭제"""
-    HistoryService.clear_all_history(get_current_user_id())
-    return jsonify({"success": True})
+@history_bp.route('/history')
+def get_history_page():
+    return render_template('history/index.html', history_list=MOCK_HISTORY)
