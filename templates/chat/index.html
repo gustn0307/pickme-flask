@@ -1,4 +1,4 @@
-```html {% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %} {% block content %}
 <style>
   .chat-page {
     --chat-primary: #3563e9;
@@ -463,10 +463,23 @@
     background: #eff5ff;
   }
 
+  .typing-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .typing-label {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
   .typing-dots {
     display: inline-flex;
     gap: 5px;
-    padding: 7px 0;
+    padding: 2px 0;
   }
 
   .typing-dots span {
@@ -769,7 +782,7 @@
         <button
           type="button"
           class="quick-btn"
-          data-message="오늘 점심으로 짬뽕과 짜장면 중 무엇을 먹을지 고민돼요. 예산은 12,000원이고 오후에 회의가 있어요."
+          data-message="오늘 점심으로 짬뽕과 짜장면 중 무엇을 먹을지 고민돼요."
         >
           🍜 짬뽕 vs 짜장면
         </button>
@@ -954,12 +967,13 @@
       typingEl = document.createElement("div");
       typingEl.className = "chat-message ai";
       typingEl.setAttribute("role", "status");
+      typingEl.setAttribute("aria-live", "polite");
 
       typingEl.innerHTML = `
         <div class="chat-avatar" aria-hidden="true">AI</div>
         <div class="chat-message-column">
-          <div class="chat-bubble">
-            <span class="sr-only">AI가 답변을 작성 중입니다.</span>
+          <div class="chat-bubble typing-bubble">
+            <span class="typing-label">AI 답변 중</span>
             <span class="typing-dots" aria-hidden="true">
               <span></span>
               <span></span>
@@ -1157,9 +1171,18 @@
       updateSendState();
     });
 
+    // 빠른 추천: data-message 원문을 그대로 전송 (버튼 표시 문구와 혼동되지 않도록)
     quickBtns.forEach((button) => {
+      const fixedMessage = (button.getAttribute("data-message") || "").trim();
       button.addEventListener("click", () => {
-        const message = button.dataset.message || button.textContent.trim();
+        if (isSending) return;
+        const message = fixedMessage || button.textContent.trim();
+        if (!message) return;
+        // 입력창에도 원문 질문을 잠시 보여준 뒤 전송 (질문 내용이 바뀌지 않음을 확인)
+        userInput.value = message;
+        autoResize();
+        updateCounter();
+        updateSendState();
         sendMessage(message);
       });
     });

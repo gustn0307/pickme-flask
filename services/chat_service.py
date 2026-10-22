@@ -1,4 +1,3 @@
-
 import json
 import logging
 import os
@@ -88,6 +87,9 @@ SYSTEM_INSTRUCTION = """
 7. 정상적인 고민에는 선택지의 장단점과 판단에 도움이 되는 기준을 제시하세요.
 8. 입력에 없는 사실을 지어내거나 근거 없이 확정적인 결론을 내리지 마세요.
 9. JSON의 키와 자료형을 정확히 지키세요.
+10. 사용자가 명시한 선택지 이름(예: 짬뽕, 짜장면, 이직, 현재 회사)을 바꾸거나 다른 선택지로 대체하지 마세요.
+11. reply에서 사용자의 원래 질문을 왜곡하지 말고, 선택지를 그대로 언급하세요.
+12. parsed_data.options에는 사용자가 말한 두 선택지를 최대한 원문에 가깝게 넣으세요.
 """
 
 CRISIS_KEYWORDS = (
@@ -280,6 +282,28 @@ class ChatService:
             cleaned,
         ).strip()
 
+        # "A와/과 B 중 무엇을/어떤 것을" 패턴 (빠른 추천: 짬뽕과 짜장면)
+        vs_mid = re.search(
+            r"(.+?)(?:와|과)\s*(.+?)\s*중\s*(?:무엇|어떤\s*것|뭘|뭐)을?",
+            cleaned,
+        )
+        if vs_mid:
+            a = vs_mid.group(1).strip()
+            b = vs_mid.group(2).strip()
+            # 앞쪽 수식어 제거 시도 (오늘 점심으로 짬뽕 -> 짬뽕)
+            a_short = re.sub(r"^.*?로\s+", "", a).strip() or a
+            if a_short and b:
+                return [a_short, b]
+
+        # "A와/과 B" 단순 비교
+        and_vs = re.search(r"^(.+?)(?:와|과)\s*(.+)$", cleaned)
+        if and_vs:
+            a = and_vs.group(1).strip()
+            b = and_vs.group(2).strip()
+            a = re.sub(r"^.*?로\s+", "", a).strip() or a
+            if a and b and len(a) <= 30 and len(b) <= 30:
+                return [a, b]
+
         parts = [part.strip() for part in SPLIT_RE.split(cleaned) if part.strip()]
         if len(parts) >= 2:
             return [
@@ -295,12 +319,56 @@ class ChatService:
                 cls._phrase_to_option(b + " " + verb_b),
             ]
 
-        cleaned = re.sub(r"\s*말까$", "", cleaned).strip()
-        action = cls._to_action(cleaned)
+        def normalize_choice(p):
+            p = p.strip()
+            if p.endswith("을") or p.endswith("를"):
+                p = p[:-1]
+            mappings = (
+                ("나갈지", "나가기"),
+                ("남을지", "남기"),
+                ("갈지", "가기"),
+                ("할지", "하기"),
+                ("먹을지", "먹기"),
+                ("살지", "사기"),
+                ("볼지", "보기"),
+                ("쉴지", "쉬기"),
+            )
+            for src, dst in mappings:
+                if p.endswith(src):
+                    return p[: -len(src)] + dst
+            if p.endswith("지"):
+                base = p[:-1]
+                if base.endswith("을") or base.endswith("를"):
+                    base = base[:-1]
+                return base + "하기"
+            if p in ("이직", "퇴사"):
+                return p + "하기"
+            if not p.endswith(("기", "하기", "가기", "쉬기", "남기")):
+                return p + "하기"
+            return p
+
+        # "이직을 할지 현재 회사에 남을지"
+        two_choice = re.search(r"(.+?)\s*할지\s+(.+?지)$", cleaned)
+        if two_choice:
+            return [
+                normalize_choice(two_choice.group(1)),
+                normalize_choice(two_choice.group(2)),
+            ]
+
+        # "오늘 약속에 나갈지 집에서 쉴지"
+        two_지 = re.search(r"(.+?지)\s+(.+?지)$", cleaned)
+        if two_지:
+            return [
+                normalize_choice(two_지.group(1)),
+                normalize_choice(two_지.group(2)),
+            ]
+
+        cleaned2 = re.sub(r"\s*말까$", "", cleaned).strip()
+        action = cls._to_action(cleaned2)
         if action:
             return list(action)
 
-        stem = re.sub(r"(을까|할까|갈까|까)$", "", cleaned).strip()
+        stem = re.sub(r"(을까|할까|갈까|까)$", "", cleaned2).strip()
         if stem:
             return [f"{stem} 하기", f"{stem} 하지 않기"]
 
@@ -534,11 +602,13 @@ class ChatService:
             )
 
         reply = (
-            f"현재 고민: {cls._short(message, 100)}\n\n"
+            f"말씀해 주신 고민을 이렇게 정리했어요.\n\n"
             f"• 선택지 1: {options[0]}\n"
             f"• 선택지 2: {options[1]}\n\n"
+            f"각 선택지를 비교할 때는 비용·시간·에너지, 지금 당장 중요한 일정, "
+            f"그리고 선택 후 예상되는 기분을 기준으로 보시면 도움이 됩니다.\n\n"
             f"{closing}\n\n"
-            "결정 도우미에서 각 선택의 장단점과 고려할 요소를 더 자세히 비교해 보세요."
+            "결정 도우미에서 장단점을 더 자세히 비교해 보셔도 좋아요."
         )
 
         return cls._result(prefix + reply, parsed)
