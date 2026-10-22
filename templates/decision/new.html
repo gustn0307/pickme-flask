@@ -7,7 +7,7 @@
     <p class="text-muted">최소 2개에서 최대 5개까지의 대안을 입력하세요.</p>
     {% if error %}<div class="alert">{{ error }}</div>{% endif %}
 
-    <form method="POST" class="panel" id="options-form">
+    <form method="POST" action="{{ url_for('decision.new_submit') }}" class="panel" id="options-form">
         <div id="option-list">
             {% for opt in options %}
             <div class="option-card">

@@ -11,6 +11,9 @@
 
     <!-- 고민 입력 폼 -->
     <form method="POST" class="panel" id="decision-form">
+        <h2 class="step-title">📋 1. 고민 개요 및 설정</h2>
+        <p class="text-muted">고민 상황과 원하는 상담 스타일을 알려주세요.</p>
+
         <!-- 개선 1: 고민 카테고리 복수 선택 -->
         <fieldset class="mb-3">
             <legend>🏷️ 고민 카테고리 <small>(여러 개 선택 가능)</small></legend>
@@ -70,16 +73,12 @@
                 placeholder="직접 입력: 예산은 15,000원 이내 등" class="mt-2">
         </fieldset>
 
-        <button type="submit" class="btn btn-primary" id="submit-btn">AI 상담 요청하기</button>
-        <!-- ★ 응답 대기 중 로딩 표시 -->
-        <span id="loading" style="display:none;" class="loading-text">
-            ⏳ AI가 고민을 분석하고 있어요... (10~20초 정도 걸려요)
-        </span>
+        <!-- 제출 버튼은 3단계 아래에 있음 (form="decision-form"으로 연결됨) -->
     </form>
 
     <!-- ★ 2단계: 비교할 선택지 작성 (같은 페이지 안) -->
     <form method="POST" action="{{ url_for('decision.index') }}" class="panel mt-3" id="options-form">
-        <h2>2. 비교할 선택지 작성 (선택)</h2>
+        <h2 class="step-title">✅ 2. 비교할 선택지 작성 (선택)</h2>
         <p class="text-muted">최소 2개에서 최대 5개까지의 대안을 입력하세요. 비어 있어도 상담은 가능해요.</p>
         <div id="option-list">
             <div class="option-card">
@@ -112,18 +111,38 @@
         <button type="button" class="btn-restyle" id="add-option">+ 선택지 추가</button>
     </form>
 
-    <!-- ★ 3단계: 판단 기준 (같은 페이지 안) -->
-    <fieldset class="mt-3 panel">
-        <legend>3. 판단 기준 및 중요도 가중치 (선택)</legend>
-        <p class="text-muted">어떤 요소를 중요하게 생각하는지 선택하세요. (최대 5개)</p>
-        <div class="chip-group">
-            <label class="chip"><input type="checkbox" name="criteria" value="비용"> 비용</label>
-            <label class="chip"><input type="checkbox" name="criteria" value="소요 시간 및 편의성"> 소요 시간 및 편의성</label>
-            <label class="chip"><input type="checkbox" name="criteria" value="개인적 만족도 및 행복"> 개인적 만족도 및 행복</label>
+    <!-- ★ 3단계: 판단 기준 + 중요도 가중치 (1,2단계와 같은 패널 스타일) -->
+    <div class="panel mt-3">
+        <h2 class="step-title">⚖️ 3. 판단 기준 및 중요도 가중치</h2>
+        <p class="text-muted">아래 칩을 눌러 판단에 필요한 기준을 추가하고, 중요도를 선택하세요.</p>
+
+        <div class="chip-group" id="criteria-chips">
+            <label class="chip"><input type="checkbox" name="criteria" value="비용 (예산)"> 비용 (예산)</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="시간 효율"> 시간 효율</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="개인 만족도"> 개인 만족도</label>
             <label class="chip"><input type="checkbox" name="criteria" value="성장 가능성 및 기회"> 성장 가능성 및 기회</label>
-            <label class="chip"><input type="checkbox" name="criteria" value="안정성 및 리스크 관리"> 안정성 및 리스크 관리</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="안정성"> 안정성</label>
+            <label class="chip"><input type="checkbox" name="criteria" value="주변 사람들의 만족"> 주변 사람들의 만족</label>
         </div>
-    </fieldset>
+
+        {# 기준을 누르면 아래에 중요도(1~5) 선택줄이 생김 #}
+        <div id="weight-box" class="mt-3"></div>
+
+        <div class="add-criteria-row mt-3">
+            <input type="text" id="new-criteria" placeholder="세부 기준 직접 추가  예: 수납함, 촬영의 느낌 등">
+            <button type="button" class="btn-restyle" id="add-criteria">기준 추가</button>
+        </div>
+    </div>
+
+    <!-- ★ 3단계 아래 가운데 정렬된 최종 제출 버튼 -->
+    <div class="text-center mt-4">
+        <button type="submit" form="decision-form" class="btn btn-primary" id="submit-btn">
+            🤖 AI 상담하러 바로 갈 준비 시작
+        </button>
+        <span id="loading" style="display:none;" class="loading-text">
+            ⏳ AI가 고민을 분석하고 있어요... (10~20초 정도 걸려요)
+        </span>
+    </div>
 
     <!-- 개선 1: 카테고리별 인기 고민 Top 5 -->
     <div class="panel mt-3">
@@ -208,6 +227,52 @@ document.getElementById('add-option').addEventListener('click', () => {
     document.getElementById('option-list').appendChild(card);
 });
 
+// ★ 기준 체크/추가 → 중요도(1~5) 선택줄 자동 생성/삭제
+const wbox = document.getElementById('weight-box');
+
+// 기준 한 줄 만들기 (그림처럼: 기준명 · 중요도 1~5 · 보류)
+function makeWeightRow(crit) {
+    const row = document.createElement('div');
+    row.className = 'criteria-row';
+    row.innerHTML = '<span> ' + crit + ' 🗑️</span>' +
+        '<span class="imp-label">중요도:</span>' +
+        [1,2,3,4,5].map(n =>
+            '<label class="weight-label"><input type="radio" name="weight_' + crit + '" value="' + n + '"' + (n === 5 ? ' checked' : '') + '> ' + n + '</label>'
+        ).join('') +
+        ' <label class="weight-label hold"><input type="radio" name="weight_' + crit + '" value="보류"> 보류</label>';
+    row.querySelector('span').addEventListener('click', () => row.remove()); // 이름 누르면 삭제
+    return row;
+}
+
+// 칩(체크박스) 누르면 → 줄 추가/삭제
+document.querySelectorAll('input[name="criteria"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+        const rowId = 'weight-row-' + cb.value;
+        let row = document.getElementById(rowId);
+        if (cb.checked && !row) {
+            row = makeWeightRow(cb.value);
+            row.id = rowId;
+            wbox.appendChild(row);
+        } else if (!cb.checked && row) {
+            row.remove();
+        }
+    });
+});
+
+// "기준 추가" 버튼 → 직접 입력한 기준의 줄 추가 (칩에도 자동 체크 표시)
+document.getElementById('add-criteria').addEventListener('click', () => {
+    const input = document.getElementById('new-criteria');
+    const crit = input.value.trim();
+    if (!crit) { alert('기준 이름을 입력해주세요.'); return; }
+    if (document.getElementById('weight-row-' + crit)) { alert('이미 추가된 기준이에요.'); return; }
+    wbox.appendChild(makeWeightRow(crit));
+    // 나중에 제출 때 기준명도 같이 보내야 하므로 숨은 체크박스로 남겨둠
+    const h = document.createElement('input');
+    h.type = 'hidden'; h.name = 'criteria'; h.value = crit;
+    document.getElementById('criteria-chips').appendChild(h);
+    input.value = '';
+});
+
 // ★ 1단계 폼 제출 시 2단계(선택지)·3단계(판단기준) 값을 같이 넘겨주기
 document.getElementById('decision-form').addEventListener('submit', e => {
     // 선택지 입력들을 1단계 폼에 숨은 입력으로 복사
@@ -220,9 +285,10 @@ document.getElementById('decision-form').addEventListener('submit', e => {
             e.target.appendChild(h1); e.target.appendChild(h2);
         }
     });
-    // 판단 기준 체크도 복사
-    document.querySelectorAll('input[name="criteria"]:checked').forEach(cb => {
-        const h = document.createElement('input'); h.type = 'hidden'; h.name = 'criteria'; h.value = cb.value;
+    // 판단 기준 체크 + 가중치 점수 복사 (라디오는 이미 name="weight_기준명"이라 그대로 전송됨)
+    document.querySelectorAll('#weight-box .criteria-row').forEach(row => {
+        const crit = row.querySelector('span').textContent.replace('🗑️', '').trim();
+        const h = document.createElement('input'); h.type = 'hidden'; h.name = 'criteria'; h.value = crit;
         e.target.appendChild(h);
     });
 });
