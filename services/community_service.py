@@ -53,7 +53,8 @@ def cast_vote(post_id, option_id, user_id):
     return True, '투표가 반영되었습니다.'
 
 def toggle_like(post_id, user_id):
-    if not db.session.get(Post, post_id):
+    post = db.session.get(Post, post_id)
+    if post is None:
         return False
     like = CommunityLike.query.filter_by(post_id=post_id, user_id=user_id).first()
     if like: db.session.delete(like)
@@ -63,9 +64,85 @@ def toggle_like(post_id, user_id):
     return True
 
 def add_comment(post_id, user, content):
-    if not db.session.get(Post, post_id): return False
     post = db.session.get(Post, post_id)
+    if post is None: return False
     db.session.add(Comment(post_id=post_id, user_id=user.id, content=content.strip()))
     post.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+    return True
+
+
+
+def cancel_vote(post_id, user_id):
+    """Remove the current user's vote for a post."""
+    post = db.session.get(Post, post_id)
+    if post is None:
+        return False, '게시글을 찾을 수 없습니다.'
+    vote = CommunityVote.query.filter_by(post_id=post_id, user_id=user_id).first()
+    if vote is None:
+        return True, '취소할 투표가 없습니다.'
+    db.session.delete(vote)
+    post.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+    return True, '투표를 취소했습니다.'
+
+
+def edit_post(post_id, user_id, title, content, category):
+    post = db.session.get(Post, post_id)
+
+    if post is None or post.user_id != user_id:
+        return False
+
+    post.title = title.strip()
+    post.content = content.strip()
+    post.category = category
+    post.updated_at = datetime.now(timezone.utc)
+
+    db.session.commit()
+    return True
+
+
+def delete_post(post_id, user_id):
+    post = db.session.get(Post, post_id)
+
+    if post is None or post.user_id != user_id:
+        return False
+
+    db.session.delete(post)
+    db.session.commit()
+    return True
+
+
+def edit_comment(post_id, comment_id, user_id, content):
+    comment = db.session.get(Comment, comment_id)
+
+    if (
+        comment is None
+        or comment.post_id != post_id
+        or comment.user_id != user_id
+    ):
+        return False
+
+    comment.content = content.strip()
+    comment.post.updated_at = datetime.now(timezone.utc)
+
+    db.session.commit()
+    return True
+
+
+def delete_comment(post_id, comment_id, user_id):
+    comment = db.session.get(Comment, comment_id)
+
+    if (
+        comment is None
+        or comment.post_id != post_id
+        or comment.user_id != user_id
+    ):
+        return False
+
+    post = comment.post
+    db.session.delete(comment)
+    post.updated_at = datetime.now(timezone.utc)
+
     db.session.commit()
     return True
