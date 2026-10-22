@@ -26,7 +26,7 @@
         </p>
     </div>
 
-    <!-- ★ [신규 추가] 2.5 검색 및 필터 컨트롤 영역 ★ -->
+    <!-- 검색 및 필터 컨트롤 영역 -->
     <div class="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <!-- 검색창 -->
         <div class="flex-1 relative">
@@ -54,12 +54,12 @@
         </div>
     </div>
 
-    <!-- 3. 데이터가 있을 때 보여줄 리스트 영역 (초기엔 숨김) -->
+    <!-- 리스트 영역 -->
     <div id="history-list-container" class="hidden space-y-4">
-        <!-- 자바스크립트가 고민 기록 카드 생성 -->
+        <!-- 자바스크립트가 카드 생성 -->
     </div>
 
-    <!-- 4. 데이터가 없을 때 (Empty State) 영역 -->
+    <!-- Empty State -->
     <div id="empty-state" class="flex flex-col items-center justify-center p-12 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
         <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
             <i data-lucide="scale" class="w-6 h-6"></i>
@@ -72,6 +72,89 @@
         </a>
     </div>
 
+</div>
+
+<!-- ==================== 상세 보기 모달 ==================== -->
+<div id="detailModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <!-- 모달 헤더 -->
+        <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center rounded-t-2xl z-10">
+            <h2 id="modalTitle" class="text-xl font-bold text-slate-900">고민 상세</h2>
+            <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- 모달 본문 -->
+        <div class="p-6 space-y-5">
+            <div class="flex items-center gap-3 text-sm">
+                <span id="modalCategory" class="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-md"></span>
+                <span id="modalDate" class="text-slate-400"></span>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-semibold text-slate-500 mb-1">고민 내용</h3>
+                <p id="modalDilemma" class="text-slate-800 leading-relaxed whitespace-pre-wrap"></p>
+            </div>
+
+            <!-- AI 분석 결과 -->
+            <div id="modalResultSection" class="hidden">
+                <h3 class="text-sm font-semibold text-slate-500 mb-2">AI 분석 결과</h3>
+                <div id="modalResultContent" class="bg-slate-50 rounded-xl p-4 text-sm text-slate-700 space-y-2"></div>
+            </div>
+
+            <!-- 회고 영역 -->
+            <div class="border-t border-slate-200 pt-5">
+                <h3 class="text-sm font-semibold text-slate-500 mb-3">나의 회고</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">실제로 선택한 것</label>
+                        <input type="text" id="actualChoiceInput" 
+                               class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="실제로 어떤 선택을 했나요?">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">만족도 (1~5점)</label>
+                        <select id="satisfactionSelect" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">선택 안 함</option>
+                            <option value="1">1점 - 매우 불만족</option>
+                            <option value="2">2점 - 불만족</option>
+                            <option value="3">3점 - 보통</option>
+                            <option value="4">4점 - 만족</option>
+                            <option value="5">5점 - 매우 만족</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">회고 노트</label>
+                        <textarea id="retrospectiveNote" rows="3"
+                                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="이 결정에 대해 느낀 점이나 배운 점을 적어보세요."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 모달 푸터 -->
+        <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex justify-between gap-3 rounded-b-2xl">
+            <button onclick="deleteCurrentHistory()" 
+                    class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                삭제
+            </button>
+            <div class="flex gap-2">
+                <button onclick="closeDetailModal()" 
+                        class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                    닫기
+                </button>
+                <button onclick="saveRetrospective()" 
+                        class="px-5 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    회고 저장
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- 공통 하단 푸터 영역 -->
@@ -95,7 +178,7 @@
 <script>
     lucide.createIcons();
 
-    // ★ [신규] 필터 상태를 저장하는 객체
+    // 필터 상태
     const currentFilters = {
         q: '',
         category: '전체',
@@ -103,9 +186,11 @@
         bookmarked: false
     };
 
-    // ★ [수정] 데이터를 불러오는 부분을 함수로 분리 (필터 변경 시 재사용하기 위함)
+    // 현재 상세 보기 중인 ID
+    let currentDetailId = null;
+
+    // ==================== 목록 불러오기 ====================
     function loadHistories() {
-        // 필터 상태를 URL 파라미터로 변환 (?q=검색어&category=전체...)
         const params = new URLSearchParams({
             q: currentFilters.q,
             category: currentFilters.category,
@@ -119,7 +204,6 @@
                 const emptyState = document.getElementById('empty-state');
                 const listContainer = document.getElementById('history-list-container');
                 
-                // 기존 리스트 초기화 (새로 검색할 때마다 비워줌)
                 listContainer.innerHTML = '';
 
                 if (data && data.length > 0) {
@@ -131,26 +215,31 @@
                         const card = document.createElement('div');
                         card.className = "p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer relative";
                         
-                        // 즐겨찾기 여부에 따라 별 아이콘 색상 결정
-                        const starClass = item.is_bookmarked ? 'text-yellow-400 fill-yellow-400' : 'text-slate-300 hover:text-yellow-400';
+                        const starClass = item.is_bookmarked 
+                            ? 'text-yellow-400 fill-yellow-400' 
+                            : 'text-slate-300 hover:text-yellow-400';
 
                         card.innerHTML = `
                             <div class="flex justify-between items-start mb-2">
                                 <span class="px-2 py-1 bg-blue-100 text-blue-700 text-[11px] font-bold rounded-md">${item.category || '일반'}</span>
                                 <div class="flex items-center gap-3">
                                     <span class="text-xs text-slate-400">${item.created_at}</span>
-                                    <!-- ★ [신규] 즐겨찾기 버튼 -->
-                                    <button onclick="toggleBookmark('${item.id}', event, this)" class="focus:outline-none transition-colors" title="즐겨찾기">
+                                    <button onclick="toggleBookmark(${item.id}, event, this)" class="focus:outline-none transition-colors" title="즐겨찾기">
                                         <i data-lucide="star" class="w-5 h-5 ${starClass}"></i>
                                     </button>
                                 </div>
                             </div>
                             <h2 class="text-lg font-bold text-slate-900 mb-1 line-clamp-1">${item.title}</h2>
-                            <p class="text-sm text-slate-500 line-clamp-2">${item.dilemma}</p>
+                            <p class="text-sm text-slate-500 line-clamp-2">${item.dilemma || ''}</p>
                         `;
+
+                        // 카드 클릭 → 상세 모달
+                        card.addEventListener('click', () => {
+                            openDetailModal(item);
+                        });
+
                         listContainer.appendChild(card);
                     });
-                    // 새로 생성된 카드 안의 아이콘(별)들을 다시 렌더링
                     lucide.createIcons();
                 } else {
                     emptyState.classList.remove('hidden');
@@ -161,25 +250,25 @@
             .catch(error => console.error('기록을 불러오는 중 오류 발생:', error));
     }
 
-    // ★ [신규] 개별 즐겨찾기 토글 함수
+    // ==================== 즐겨찾기 ====================
     function toggleBookmark(decisionId, event, btnElement) {
-        event.stopPropagation(); // 카드 클릭 이벤트와 겹치지 않게 방지
+        event.stopPropagation();
 
         fetch(`/history/api/${decisionId}/bookmark`, { method: 'POST' })
             .then(res => res.json())
             .then(data => {
-                if(data.success) {
-                    // API 응답에 맞춰 별 아이콘 색상 변경
+                if (data.success) {
                     const svg = btnElement.querySelector('svg');
-                    if(data.is_bookmarked) {
-                        svg.classList.add('text-yellow-400', 'fill-yellow-400');
-                        svg.classList.remove('text-slate-300');
-                    } else {
-                        svg.classList.remove('text-yellow-400', 'fill-yellow-400');
-                        svg.classList.add('text-slate-300');
+                    if (svg) {
+                        if (data.is_bookmarked) {
+                            svg.classList.add('text-yellow-400', 'fill-yellow-400');
+                            svg.classList.remove('text-slate-300');
+                        } else {
+                            svg.classList.remove('text-yellow-400', 'fill-yellow-400');
+                            svg.classList.add('text-slate-300');
+                        }
                     }
                     
-                    // 만약 '즐겨찾기 모아보기' 필터가 켜진 상태에서 즐겨찾기를 해제했다면 리스트 새로고침
                     if (currentFilters.bookmarked && !data.is_bookmarked) {
                         loadHistories();
                     }
@@ -188,49 +277,157 @@
             .catch(error => console.error('즐겨찾기 변경 오류:', error));
     }
 
-    // --- 이벤트 리스너 등록 ---
+    // ==================== 상세 모달 ====================
+    function openDetailModal(item) {
+        currentDetailId = item.id;
+
+        document.getElementById('modalTitle').textContent = item.title || '제목 없음';
+        document.getElementById('modalCategory').textContent = item.category || '일반';
+        document.getElementById('modalDate').textContent = item.created_at || '';
+        document.getElementById('modalDilemma').textContent = item.dilemma || '';
+
+        // 회고 데이터
+        document.getElementById('actualChoiceInput').value = item.actual_choice || '';
+        document.getElementById('satisfactionSelect').value = item.satisfaction_score || '';
+        document.getElementById('retrospectiveNote').value = item.retrospective_note || '';
+
+        // AI 결과
+        const resultSection = document.getElementById('modalResultSection');
+        const resultContent = document.getElementById('modalResultContent');
+        
+        if (item.options_data || item.recommendation_data) {
+            resultSection.classList.remove('hidden');
+            let html = '';
+            
+            if (item.recommendation_data) {
+                html += `<p><strong>AI 추천:</strong> ${item.recommendation_data}</p>`;
+            }
+            if (item.options_data && Array.isArray(item.options_data) && item.options_data.length > 0) {
+                html += `<p class="mt-2"><strong>선택지:</strong></p><ul class="list-disc list-inside space-y-1">`;
+                item.options_data.forEach(opt => {
+                    const text = typeof opt === 'string' ? opt : (opt.name || JSON.stringify(opt));
+                    html += `<li>${text}</li>`;
+                });
+                html += `</ul>`;
+            }
+            resultContent.innerHTML = html || '<p class="text-slate-400">분석 결과 없음</p>';
+        } else {
+            resultSection.classList.add('hidden');
+        }
+
+        const modal = document.getElementById('detailModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        lucide.createIcons();
+    }
+
+    function closeDetailModal() {
+        const modal = document.getElementById('detailModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        currentDetailId = null;
+    }
+
+    // ==================== 회고 저장 ====================
+    function saveRetrospective() {
+        if (!currentDetailId) return;
+
+        const data = {
+            actualChoice: document.getElementById('actualChoiceInput').value.trim(),
+            satisfactionScore: document.getElementById('satisfactionSelect').value,
+            retrospectiveNote: document.getElementById('retrospectiveNote').value.trim()
+        };
+
+        fetch(`/history/api/${currentDetailId}/retrospective`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                alert('회고가 저장되었습니다!');
+                closeDetailModal();
+                loadHistories();
+            } else {
+                alert('저장에 실패했습니다.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('저장 중 오류가 발생했습니다.');
+        });
+    }
+
+    // ==================== 삭제 ====================
+    function deleteCurrentHistory() {
+        if (!currentDetailId) return;
+        if (!confirm('이 기록을 정말 삭제하시겠습니까?')) return;
+
+        fetch(`/history/api/${currentDetailId}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    closeDetailModal();
+                    loadHistories();
+                } else {
+                    alert('삭제에 실패했습니다.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('삭제 중 오류가 발생했습니다.');
+            });
+    }
+
+    // ==================== 이벤트 리스너 ====================
     document.addEventListener('DOMContentLoaded', function() {
-        // 1. 초기 데이터 로드
+        // 초기 로드
         loadHistories();
 
-        // 2. 검색어 입력 이벤트
+        // 검색 (디바운스)
         const searchInput = document.getElementById('searchInput');
         let searchTimeout;
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
-            currentFilters.q = e.target.value;
-            // 타자 칠 때마다 API를 너무 많이 호출하지 않도록 0.3초 대기 후 검색
+            currentFilters.q = e.target.value.trim();
             searchTimeout = setTimeout(loadHistories, 300);
         });
 
-        // 3. 카테고리 변경 이벤트
+        // 카테고리
         document.getElementById('categoryFilter').addEventListener('change', (e) => {
             currentFilters.category = e.target.value;
             loadHistories();
         });
 
-        // 4. 정렬 변경 이벤트
+        // 정렬
         document.getElementById('sortFilter').addEventListener('change', (e) => {
             currentFilters.sort = e.target.value;
             loadHistories();
         });
 
-        // 5. 즐겨찾기 모아보기 토글 버튼 이벤트
+        // 즐겨찾기 모아보기 토글
         const bookmarkBtn = document.getElementById('bookmarkFilterBtn');
         bookmarkBtn.addEventListener('click', () => {
             currentFilters.bookmarked = !currentFilters.bookmarked;
             
-            // 버튼 디자인(활성화/비활성화) 변경
-            if(currentFilters.bookmarked) {
+            if (currentFilters.bookmarked) {
                 bookmarkBtn.classList.add('bg-blue-50', 'text-blue-600', 'border-blue-200');
                 bookmarkBtn.classList.remove('bg-slate-50', 'text-slate-600');
-                bookmarkBtn.querySelector('svg').classList.add('fill-blue-600');
+                const icon = bookmarkBtn.querySelector('svg');
+                if (icon) icon.classList.add('fill-blue-600');
             } else {
                 bookmarkBtn.classList.remove('bg-blue-50', 'text-blue-600', 'border-blue-200');
                 bookmarkBtn.classList.add('bg-slate-50', 'text-slate-600');
-                bookmarkBtn.querySelector('svg').classList.remove('fill-blue-600');
+                const icon = bookmarkBtn.querySelector('svg');
+                if (icon) icon.classList.remove('fill-blue-600');
             }
             loadHistories();
+        });
+
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDetailModal();
         });
     });
 </script>
