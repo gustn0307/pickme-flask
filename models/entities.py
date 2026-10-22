@@ -20,7 +20,6 @@ class Decision(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    # 수정됨: 'users.id' -> 'user.id'
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False, index=True)
     title = db.Column(db.String(200), nullable=False)
     question = db.Column(db.Text, nullable=False, default='')
@@ -37,7 +36,6 @@ class Post(db.Model):
     __tablename__ = 'post'
 
     id = db.Column(db.Integer, primary_key=True)
-    # 수정됨: 'users.id' -> 'user.id'
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False, index=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
@@ -61,7 +59,6 @@ class Comment(db.Model):
     __tablename__ = 'comment'
 
     id = db.Column(db.Integer, primary_key=True)
-    # 수정됨: 'posts.id' -> 'post.id', 'users.id' -> 'user.id'
     post_id = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False, index=True)
     content = db.Column(db.Text, nullable=False)
