@@ -72,29 +72,136 @@ def index():
                     except Exception:
                         db.session.rollback()
 
+            session.pop('latest_decision_payload', None)
             return render_template(
                 'decision/index.html',
                 result=ai_result, error=None,
                 categories=CATEGORIES, styles=STYLES, chips=CONDITION_CHIPS,
                 form=request.form,
+                prefill_options=_prefill_options_list(request.form),
+                from_chat=False,
             )
+
+    # GET: AI 상담에서 넘어온 선택지/제목/내용 미리 채우기
+    prefill = _build_prefill_form()
+    form = request.form if request.method == 'POST' else prefill
 
     return render_template(
         'decision/index.html',
         result=ai_result, error=error,
         categories=CATEGORIES, styles=STYLES, chips=CONDITION_CHIPS,
         # ★ 입력 리셋 방지: 제출한 값 그대로 돌려보내 화면에 유지
-        form=request.form,
+        form=form,
+        prefill_options=_prefill_options_list(form),
+        from_chat=bool(session.get('latest_decision_payload')),
     )
+
+
+# AI 상담 → 결정 도우미 카테고리 이름 맞추기
+_CATEGORY_MAP = {
+    "진로/이직": "진로/직업",
+    "쇼핑/소비": "소비/쇼핑",
+    "진로/직업": "진로/직업",
+    "소비/쇼핑": "소비/쇼핑",
+    "음식/식사": "음식/식사",
+    "학습/자기계발": "학습/자기계발",
+    "여행/여가": "여행/여가",
+    "연애/관계": "연애/관계",
+    "일상/생활": "일상/생활",
+    "기타": "기타",
+}
+
+
+def _prefill_options_list(form):
+    """폼에서 선택지 목록을 꺼내 템플릿에 넘긴다."""
+    titles = form.getlist('option_title') if hasattr(form, 'getlist') else []
+    notes = form.getlist('option_note') if hasattr(form, 'getlist') else []
+    options = []
+    for i, t in enumerate(titles):
+        t = (t or '').strip()
+        if not t:
+            continue
+        n = notes[i] if i < len(notes) else ''
+        options.append({"title": t, "note": (n or '').strip()})
+    while len(options) < 2:
+        options.append({"title": "", "note": ""})
+    return options[:5]
+
+
+def _build_prefill_form():
+    """세션(AI 상담) 또는 쿼리스트링으로 넘어온 값을 MultiDict 형태로 만든다."""
+    from werkzeug.datastructures import MultiDict
+
+    data = []
+    payload = session.get('latest_decision_payload') or {}
+
+    # 쿼리스트링 우선(직접 링크), 없으면 세션
+    q_title = (request.args.get('title') or '').strip()
+    q_category = (request.args.get('category') or '').strip()
+    q_content = (request.args.get('content') or '').strip()
+    q_options = request.args.get('options')  # JSON 배열 문자열
+
+    title = q_title or (payload.get('title') or '').strip()
+    category = q_category or (payload.get('category') or '').strip()
+    content = q_content or (payload.get('content') or '').strip()
+
+    options = []
+    if q_options:
+        import json
+        try:
+            raw = json.loads(q_options)
+            if isinstance(raw, list):
+                options = [str(x).strip() for x in raw if str(x).strip()]
+        except Exception:
+            options = []
+    if not options:
+        raw_opts = payload.get('options') or []
+        if isinstance(raw_opts, list):
+            options = [str(x).strip() for x in raw_opts if str(x).strip()]
+
+    if title:
+        data.append(('title', title))
+    if content:
+        data.append(('content', content))
+
+    mapped = _CATEGORY_MAP.get(category, category)
+    if mapped in CATEGORIES:
+        data.append(('categories', mapped))
+
+    for opt in options[:5]:
+        data.append(('option_title', opt))
+        data.append(('option_note', ''))
+
+    # 한 번 쓰면 세션에서 제거하지 않음 — 사용자가 수정·재제출할 수 있게 유지
+    # (초기화는 채팅 clear 또는 결정 제출 성공 시에만)
+    return MultiDict(data)
 
 
 # 2단계(비교할 선택지 작성) 화면
 @bp.route('/new', methods=['GET'])
 def new():
     draft = session.get('decision_draft', {})
-    # 이전 단계에서 넘어온 선택지가 없으면 기본 2칸을 보여준다
-    options = [{"title": "", "note": ""}, {"title": "", "note": ""}]
-    return render_template('decision/new.html', options=options, draft=draft)
+    # AI 상담에서 넘어온 선택지 우선
+    payload = session.get('latest_decision_payload') or {}
+    options = []
+    raw_opts = payload.get('options') or []
+    if isinstance(raw_opts, list):
+        for o in raw_opts[:5]:
+            if str(o).strip():
+                options.append({"title": str(o).strip(), "note": ""})
+    # 쿼리 options
+    q_options = request.args.get('options')
+    if q_options and not options:
+        import json
+        try:
+            raw = json.loads(q_options)
+            if isinstance(raw, list):
+                options = [{"title": str(x).strip(), "note": ""} for x in raw if str(x).strip()]
+        except Exception:
+            pass
+    if len(options) < 2:
+        options = options + [{"title": "", "note": ""}] * (2 - len(options))
+    return render_template('decision/new.html', options=options[:5], draft=draft)
 
 
 # 2단계 제출 → 3단계(판단 기준 + 가중치)로 이동

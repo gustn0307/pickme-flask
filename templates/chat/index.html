@@ -1027,8 +1027,13 @@
         category,
         options: JSON.stringify(options),
       });
+      // content가 있으면 함께 전달 (결정 도우미 고민 내용 미리 채움)
+      if (parsed.content) {
+        params.set("content", String(parsed.content));
+      }
 
-      gotoDecisionBtn.href = `/decision/new?${params.toString()}`;
+      // 전체 기능이 있는 결정 도우미 메인으로 이동 (선택지·제목만 채우고 가중치는 사용자 입력)
+      gotoDecisionBtn.href = `/decision/?${params.toString()}`;
       decisionBanner.hidden = false;
     }
 

@@ -66,8 +66,16 @@ def chat_send():
     is_crisis = bool(ai_result.get("is_crisis"))
     parsed_data = None if is_crisis else ai_result.get("parsed_data")
 
-    if parsed_data:
-        session[DECISION_PAYLOAD_KEY] = parsed_data
+    if parsed_data and isinstance(parsed_data, dict):
+        # 결정 도우미로 넘길 때 원문 질문·선택지·카테고리를 함께 보관
+        payload = {
+            "title": parsed_data.get("title") or "",
+            "category": parsed_data.get("category") or "기타",
+            "options": parsed_data.get("options") or [],
+            "content": user_message.strip(),
+        }
+        session[DECISION_PAYLOAD_KEY] = payload
+        parsed_data = payload  # 클라이언트 배너에도 content 포함
     else:
         session.pop(DECISION_PAYLOAD_KEY, None)
 
