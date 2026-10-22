@@ -285,12 +285,26 @@ document.getElementById('decision-form').addEventListener('submit', e => {
             e.target.appendChild(h1); e.target.appendChild(h2);
         }
     });
-    // 판단 기준 체크 + 가중치 점수 복사 (라디오는 이미 name="weight_기준명"이라 그대로 전송됨)
-    document.querySelectorAll('#weight-box .criteria-row').forEach(row => {
-        const crit = row.querySelector('span').textContent.replace('🗑️', '').trim();
-        const h = document.createElement('input'); h.type = 'hidden'; h.name = 'criteria'; h.value = crit;
-        e.target.appendChild(h);
-    });
+    // 판단 기준 체크 + 선택된 가중치 점수 모두 복사해서 폼에 담기
+document.querySelectorAll('#weight-box .criteria-row').forEach(row => {
+    const crit = row.querySelector('span').textContent.replace('🗑️', '').trim();
+    
+    // 1. 기준 이름 복사
+    const h = document.createElement('input'); 
+    h.type = 'hidden'; 
+    h.name = 'criteria'; 
+    h.value = crit;
+    e.target.appendChild(h);
+
+    // 2. 선택된 가중치 점수(라디오 버튼)도 강제로 찾아내서 폼에 복사 (추가된 부분)
+    const checkedRadio = row.querySelector('input[type="radio"]:checked');
+    if (checkedRadio) {
+        const wh = document.createElement('input');
+        wh.type = 'hidden';
+        wh.name = 'weight_' + crit;
+        wh.value = checkedRadio.value;
+        e.target.appendChild(wh);
+    }
 });
 </script>
 {% endblock %}
