@@ -1,6 +1,6 @@
 from flask import Flask, session, g
 from config import Config
-from extensions import db
+from extensions import db, migrate
 from models import User
 from routes.main_routes import bp as main_bp
 from routes.member_routes import bp as member_bp
@@ -13,6 +13,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     db.init_app(app)
+    migrate.init_app(app, db)
     for bp in [main_bp, member_bp, chat_bp, decision_bp, history_bp, community_bp]:
         app.register_blueprint(bp)
 
@@ -22,11 +23,8 @@ def create_app():
 
     @app.context_processor
     def inject_user():
-        return {'current_user': g.get('user')}
+        return {'current_user': g.get('user'), 'csrf_token': lambda: session.setdefault('_csrf_token', __import__('secrets').token_urlsafe(32))}
 
-    # 이틀짜리 프로토타입용 초기화. 실서비스에서는 마이그레이션으로 교체.
-    with app.app_context():
-        db.create_all()
     return app
 
 app = create_app()
