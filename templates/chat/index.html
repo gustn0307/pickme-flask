@@ -1,2 +1,165 @@
 {% extends 'base.html' %}
-{% block content %}<section class='panel'><h1>AI 상담하기</h1><p>담당 팀원이 구현할 화면입니다.</p></section>{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 flex flex-col h-[calc(100vh-100px)] max-w-4xl mx-auto w-full">
+
+    <!-- 상단 컨트롤 영역 (성향 선택 및 초기화) -->
+    <div class="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center shadow-xs rounded-t-xl mb-4">
+        <div class="flex items-center space-x-2">
+            <span class="text-xl">🤖</span>
+            <h2 class="text-lg font-bold text-gray-800">AI 상담소</h2>
+        </div>
+        <div class="flex items-center space-x-3">
+            <!-- 성향/톤 설정 선택 -->
+            <select id="ai-tone" class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="empathy">부드러운 공감형 💬</option>
+                <option value="objective">객관적인 분석형 📊</option>
+                <option value="strict">단호한 팩트형 ⚖️</option>
+            </select>
+            <button id="clear-btn" class="text-xs text-gray-500 hover:text-red-500 transition">대화 초기화 🔄</button>
+        </div>
+    </div>
+
+    <!-- 메인 대화 영역 -->
+    <div class="flex-1 flex flex-col overflow-hidden px-2">
+        
+        <!-- ③ 상단 결정 도우미 연동 알림 배너 (기본 숨김 상태) -->
+        <div id="decision-banner" class="hidden mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between shadow-xs">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">💡</span>
+                <div>
+                    <h4 class="text-sm font-bold text-blue-900">상담 내용을 바탕으로 최적의 선택지를 찾았어요!</h4>
+                    <p id="banner-summary" class="text-xs text-blue-700 mt-0.5">고민 내용이 요약되었습니다.</p>
+                </div>
+            </div>
+            <!-- 결정 도우미 입력 페이지(/decision/new)로 연동 -->
+            <a id="goto-decision-btn" href="/decision/new" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-xs transition flex items-center space-x-1">
+                <span>결정 도우미로 비교하러 가기</span>
+                <span>➡️</span>
+            </a>
+        </div>
+
+        <!-- 채팅 메시지 스크롤 박스 -->
+        <div id="chat-container" class="flex-1 overflow-y-auto space-y-4 pr-2 mb-4">
+            <div class="flex items-start space-x-3">
+                <div class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
+                <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-xs max-w-xl text-gray-800 text-sm leading-relaxed">
+                    안녕하세요! 무엇을 고민하고 계신가요? 상황을 편하게 말씀해 주시면 최적의 선택을 도와드릴게요.<br>
+                    하단의 추천 질문을 클릭하거나 직접 입력해 보세요!
+                </div>
+            </div>
+        </div>
+
+        <!-- 빠른 질문 추천 버튼 영역 -->
+        <div class="flex flex-wrap gap-2 mb-3">
+            <button class="quick-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-full transition shadow-2xs">짬뽕 먹을까 짜장면 먹을까?</button>
+            <button class="quick-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-full transition shadow-2xs">이직할지 고민돼요</button>
+            <button class="quick-btn bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-full transition shadow-2xs">오늘 약속 갈까 말까?</button>
+        </div>
+
+        <!-- 하단 입력창 영역 -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-2 shadow-xs flex items-center mb-4">
+            <input type="text" id="user-input" placeholder="고민 내용을 1~2문장 이상 구체적으로 적어주세요..." class="flex-1 px-4 py-2 text-sm focus:outline-none">
+            <button id="send-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition shadow-xs">전송</button>
+        </div>
+    </div>
+</div>
+
+<!-- Tailwind CSS CDN (만약 base.html에 미포함된 경우를 대비하여 유지) -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- 클라이언트 연동 스크립트 -->
+<script>
+    const chatContainer = document.getElementById('chat-container');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const aiTone = document.getElementById('ai-tone');
+    const decisionBanner = document.getElementById('decision-banner');
+    const bannerSummary = document.getElementById('banner-summary');
+    const gotoDecisionBtn = document.getElementById('goto-decision-btn');
+
+    function appendMessage(sender, text, isError = false) {
+        const isUser = sender === 'user';
+        const wrapper = document.createElement('div');
+        wrapper.className = `flex items-start space-x-3 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`;
+        
+        const avatar = document.createElement('div');
+        avatar.className = `${isUser ? 'bg-gray-700' : 'bg-blue-600'} text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0`;
+        avatar.innerText = isUser ? '나' : 'AI';
+
+        const bubble = document.createElement('div');
+        bubble.className = `border rounded-2xl px-4 py-3 shadow-xs max-w-xl text-sm leading-relaxed ${
+            isUser ? 'bg-blue-600 text-white border-blue-600' : (isError ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-gray-800 border-gray-200')
+        }`;
+        bubble.style.whiteSpace = 'pre-line';
+        bubble.innerText = text;
+
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(bubble);
+        chatContainer.appendChild(wrapper);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    async function sendMessage(text) {
+        if (!text.trim()) return;
+
+        appendMessage('user', text);
+        userInput.value = '';
+
+        try {
+            const response = await fetch('/chat/api/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text, tone: aiTone.value })
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                appendMessage('ai', data.reply);
+                
+                if (data.parsed_data) {
+                    decisionBanner.classList.remove('hidden');
+                    bannerSummary.innerText = `고민: ${data.parsed_data.title} | 선택지: ${data.parsed_data.options.join(', ')}`;
+                    
+                    const params = new URLSearchParams({
+                        title: data.parsed_data.title,
+                        category: data.parsed_data.category,
+                        options: JSON.stringify(data.parsed_data.options)
+                    });
+                    gotoDecisionBtn.href = `/decision/new?${params.toString()}`;
+                }
+            } else {
+                appendMessage('ai', data.reply, true);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            appendMessage('ai', '서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', true);
+        }
+    }
+
+    sendBtn.addEventListener('click', () => sendMessage(userInput.value));
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage(userInput.value);
+    });
+
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            sendMessage(btn.innerText);
+        });
+    });
+
+    clearBtn.addEventListener('click', async () => {
+        await fetch('/chat/api/clear', { method: 'POST' });
+        chatContainer.innerHTML = `
+            <div class="flex items-start space-x-3">
+                <div class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0">AI</div>
+                <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-xs max-w-xl text-gray-800 text-sm leading-relaxed">
+                    대화가 초기화되었습니다. 새로운 고민을 말씀해 주세요!
+                </div>
+            </div>
+        `;
+        decisionBanner.classList.add('hidden');
+    });
+</script>
+{% endblock %}
