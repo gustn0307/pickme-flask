@@ -144,12 +144,6 @@
         </span>
     </div>
 
-    <!-- 개선 1: 카테고리별 인기 고민 Top 5 -->
-    <div class="panel mt-3">
-        <h3>🔥 인기 고민 Top 5</h3>
-        <ol id="popular-list" class="popular-list"><li>불러오는 중...</li></ol>
-    </div>
-
     <!-- AI 답변 출력 영역 -->
     {% if result %}
     <div class="card mt-4">
@@ -169,16 +163,6 @@
 </div>
 
 <script>
-// 인기 고민 Top 5 불러오기
-fetch('{{ url_for("decision.api_popular") }}')
-    .then(r => r.json())
-    .then(list => {
-        const el = document.getElementById('popular-list');
-        el.innerHTML = list.length
-            ? list.map(x => `<li>${x.title} <small>(${x.count}회)</small></li>`).join('')
-            : '<li>아직 인기 고민이 없어요. 첫 상담을 시작해보세요!</li>';
-    })
-    .catch(() => { document.getElementById('popular-list').innerHTML = '<li>인기 고민을 불러올 수 없습니다.</li>'; });
 
 // 스타일 변경 재상담
 document.querySelectorAll('.btn-restyle').forEach(btn => {
