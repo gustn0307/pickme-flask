@@ -2,6 +2,9 @@
 
 기존 Flask 스타터에 커뮤니티 기능을 포함한 프로젝트입니다. 기본 모델은 PostgreSQL과 SQLAlchemy를 사용하며, 실제 DB 접속 주소는 `.env`의 `DATABASE_URL`에 설정합니다. `.env.example`을 `.env`로 복사한 뒤 DB 제공자가 준 값으로 바꾸세요. `.env`에는 비밀번호가 들어갈 수 있으므로 GitHub에 올리지 마세요.
 
+## 시연 영상
+링크: https://www.youtube.com/watch?v=5Bapf1U08GI
+
 ## PostgreSQL 연결 준비
 
 1. PostgreSQL에서 DB와 앱 전용 사용자를 준비하고, 해당 사용자에게 DB 접속 및 스키마 생성 권한을 부여합니다.
@@ -52,5 +55,4 @@ python app.py
 - `requirements.txt`에는 PostgreSQL 드라이버 `psycopg[binary]`와 스키마 변경 도구 `Flask-Migrate`가 포함되어 있습니다.
 - 로컬 기본 SQLite는 `users` 등 필요한 테이블을 자동 생성하므로 `python app.py`로 시작할 수 있습니다. PostgreSQL에서는 접속 정보와 모델 정의가 확정된 뒤 마이그레이션을 적용해야 합니다.
 
-## 시연 영상
-링크: https://www.youtube.com/watch?v=5Bapf1U08GI
+
