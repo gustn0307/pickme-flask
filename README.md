@@ -52,3 +52,5 @@ python app.py
 - `requirements.txt`에는 PostgreSQL 드라이버 `psycopg[binary]`와 스키마 변경 도구 `Flask-Migrate`가 포함되어 있습니다.
 - 로컬 기본 SQLite는 `users` 등 필요한 테이블을 자동 생성하므로 `python app.py`로 시작할 수 있습니다. PostgreSQL에서는 접속 정보와 모델 정의가 확정된 뒤 마이그레이션을 적용해야 합니다.
 
+## 시연 영상
+링크: https://www.youtube.com/watch?v=5Bapf1U08GI
