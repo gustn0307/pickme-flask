@@ -1,5 +1,15 @@
 # PickMe Flask community implementation
 
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?logo=flask&logoColor=white)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?logo=sqlalchemy&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+![Gunicorn](https://img.shields.io/badge/Gunicorn-499848?logo=gunicorn&logoColor=white)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+
 기존 Flask 스타터에 커뮤니티 기능을 포함한 프로젝트입니다. 기본 모델은 PostgreSQL과 SQLAlchemy를 사용하며, 실제 DB 접속 주소는 `.env`의 `DATABASE_URL`에 설정합니다. `.env.example`을 `.env`로 복사한 뒤 DB 제공자가 준 값으로 바꾸세요. `.env`에는 비밀번호가 들어갈 수 있으므로 GitHub에 올리지 마세요.
 
 ## 시연 영상
